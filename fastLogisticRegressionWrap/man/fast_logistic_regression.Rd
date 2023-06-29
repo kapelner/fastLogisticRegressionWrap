@@ -9,7 +9,8 @@ fast_logistic_regression(
   ybin,
   drop_collinear_variables = FALSE,
   lm_fit_tol = 1e-07,
-  solve_tol = .Machine$double.eps,
+  do_inference_on_var = FALSE,
+  num_cores = 1,
   ...
 )
 }
@@ -24,10 +25,14 @@ fast_logistic_regression(
 We use the default value from \code{base::lm.fit}'s which is 1e-7. If you fit the logistic regression and
 still get p-values near 1 indicating high collinearity, we recommend making this value smaller.}
 
-\item{solve_tol}{Tolerance when inverting X^T W X, a quantity needed when computing standard errors of the coefficients. 
-The default is \code{.Machine$double.eps} which is used in \code{base::solve}. Make this value smaller if you 
-still get errors even when setting \code{drop_collinear_variables = TRUE}. You may have to play around with 
-this parameter and \code{lm_fit_tol} a bit to get your desired result.}
+\item{do_inference_on_var}{Which variables should we compute approximate standard errors of the coefficients and approximate p-values for the test of
+no linear log-odds probability effect? Default is \code{FALSE} for inference on none (for speed). If not default, then \code{TRUE}
+to indicate inference should be computed for all variables. If a logical vector of size \code{ncol(Xmm)} is passed in then
+the indicies of the \code{TRUE} denotes which variables to compute inference for. If variables are dropped when
+\code{drop_collinear_variables = TRUE}, then indicies will likewise be dropped from this vector.}
+
+\item{num_cores}{Number of cores to use to speed up matrix multiplication and matrix inversion (used only during inference computation). Default is 1.
+Unless the number of variables, i.e. \code{ncol(Xmm)}, is large, there does not seem to be a performance gain in using multiple cores.}
 
 \item{...}{Other arguments to be passed to \code{fastLR} (see documentation there)}
 }

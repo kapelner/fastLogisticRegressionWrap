@@ -6,7 +6,7 @@
 #' @author 		Adam Kapelner \email{kapelner@@qc.cuny.edu}
 #' @references 	Kapelner, A
 #' @keywords 	logistic regression
-#' @import      checkmate RcppNumerical stats
+#' @import      checkmate Rcpp RcppEigen RcppNumerical stats
 ##### Run "library(roxygen2); roxygenise("fastLogisticRegressionWrap", clean = TRUE)" to regenerate all Rd files and NAMESPACE and DESCRIPTION file
 ##### but make sure you are in the root directory of the project. Make sure to add these two to namespace afterwards:
 NULL

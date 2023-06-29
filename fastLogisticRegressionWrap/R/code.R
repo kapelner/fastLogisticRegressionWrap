@@ -1,13 +1,14 @@
 assert_binary_vector_then_cast_to_numeric = function(vec){
   checkmate::assert_choice(class(vec), c("numeric", "integer", "logical"))
   vec = as.numeric(vec)
-  if(!(checkmate::testSetEqual(unique(vec), c(0, 1)) | checkmate::testSetEqual(unique(vec), c(0)) | checkmate::testSetEqual(unique(vec), c(1)))){ #binary only
+  if (!(checkmate::testSetEqual(unique(vec), c(0, 1)) | checkmate::testSetEqual(unique(vec), c(0)) | checkmate::testSetEqual(unique(vec), c(1)))){ #binary only
 	  stop("Set must consist of zeroes and/or ones.")
   }
   vec
 }
-assert_model_matrix = function(Xmm){
-  checkmate::assert_class(Xmm, "matrix")
+
+assert_numeric_matrix = function(Xmm){
+  checkmate::assert_matrix(Xmm)
   checkmate::assert_numeric(Xmm)
 }
 
@@ -21,10 +22,13 @@ assert_model_matrix = function(Xmm){
 #' @param lm_fit_tol					When \code{drop_collinear_variables = TRUE}, this is the tolerance to detect collinearity among predictors.
 #' 										We use the default value from \code{base::lm.fit}'s which is 1e-7. If you fit the logistic regression and
 #' 										still get p-values near 1 indicating high collinearity, we recommend making this value smaller.
-#' @param solve_tol                     Tolerance when inverting X^T W X, a quantity needed when computing standard errors of the coefficients. 
-#' 										The default is \code{.Machine$double.eps} which is used in \code{base::solve}. Make this value smaller if you 
-#' 										still get errors even when setting \code{drop_collinear_variables = TRUE}. You may have to play around with 
-#' 										this parameter and \code{lm_fit_tol} a bit to get your desired result.
+#' @param do_inference_on_var			Which variables should we compute approximate standard errors of the coefficients and approximate p-values for the test of
+#' 										no linear log-odds probability effect? Default is \code{FALSE} for inference on none (for speed). If not default, then \code{TRUE}
+#' 										to indicate inference should be computed for all variables. If a logical vector of size \code{ncol(Xmm)} is passed in then
+#' 										the indicies of the \code{TRUE} denotes which variables to compute inference for. If variables are dropped when
+#' 										\code{drop_collinear_variables = TRUE}, then indicies will likewise be dropped from this vector.
+#' @param num_cores						Number of cores to use to speed up matrix multiplication and matrix inversion (used only during inference computation). Default is 1.
+#' 										Unless the number of variables, i.e. \code{ncol(Xmm)}, is large, there does not seem to be a performance gain in using multiple cores.
 #' @param ...   						Other arguments to be passed to \code{fastLR} (see documentation there)
 #'
 #' @return      A list of raw results
@@ -36,17 +40,30 @@ assert_model_matrix = function(Xmm){
 #'  ybin = as.numeric(MASS::Pima.te$type == "Yes")
 #' )
 #' 	}
-fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, solve_tol = .Machine$double.eps, ...){
-  assert_model_matrix(Xmm)
+fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, do_inference_on_var = FALSE, num_cores = 1, ...){
+  assert_numeric_matrix(Xmm)
   ybin = assert_binary_vector_then_cast_to_numeric(ybin)
   assert_logical(drop_collinear_variables)
   assert_numeric(lm_fit_tol, lower = 0)
-  assert_numeric(solve_tol, lower = 0)
+  assert_logical(do_inference_on_var)
+  assert_count(num_cores, positive = TRUE)
+  original_col_names = colnames(Xmm)
+  
+  p = ncol(Xmm) #the original p before variables are dropped
+  if (length(do_inference_on_var) > 1){
+	  assert_true(length(do_inference_on_var) == p) 
+  } else {
+	  do_inference_on_var = rep(do_inference_on_var, p)
+  }
+  names(do_inference_on_var) = original_col_names
+  
   if (length(ybin) != nrow(Xmm)){
     stop("The number of rows in Xmm must be equal to the length of ybin")
   }
   #cat("ncol Xmm:", ncol(Xmm), "\n")
   #cat("rank Xmm:", Matrix::rankMatrix(Xmm), "\n")
+	
+  variables_retained = rep(TRUE, p)
   if (drop_collinear_variables){
 	  collinear_variables = c()
 	  repeat {
@@ -58,6 +75,8 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 		  bad_var = gsub("Xmm", "", names(b_NA)[1])
 		  #cat("bad_var", bad_var, "\n")
 		  Xmm = Xmm[, colnames(Xmm) != bad_var] #kill this bad variable!!
+		  do_inference_on_var = do_inference_on_var[colnames(Xmm) != bad_var]
+		  variables_retained[colnames(Xmm) == bad_var] = FALSE
 		  collinear_variables = c(collinear_variables, bad_var)
 	  }
 	  warning(paste("Dropped the following variables due to collinearity:\n", paste0(collinear_variables, collapse = ", ")))
@@ -73,27 +92,54 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
   flr = RcppNumerical::fastLR(Xmm, ybin, ...)
   flr$Xmm = Xmm
   flr$ybin = ybin
-  flr$regressor_names = colnames(Xmm)
-  b = flr$coefficients
-  
-  #print(b)
-  #we just need the std errors of the coefficient estimators 
-  #we compute them via notes found in https://web.stanford.edu/class/archive/stats/stats200/stats200.1172/Lecture26.pdf
-  exp_Xmm_dot_b = exp(Xmm %*% b)
-  Wmat = diag(as.numeric(exp_Xmm_dot_b / (1  + exp_Xmm_dot_b)^2))
-  XmmtWmatXmm = t(Xmm) %*% Wmat %*% Xmm
-  
-  tryCatch({
-	XmmtWmatXmminv = solve(XmmtWmatXmm, tol = solve_tol) #NOTE: Matrix::chol2inv is slightly faster, but it requires another package
-  }, 
-  error = function(e){
-	print(e)
-	stop("Error in inverting X^T X.\nTry setting drop_collinear_variables = TRUE\nto automatically drop perfectly collinear variables\nand if that didn't work then additionally try\nsetting the \"solve_tol\" argument to a value less than the \"reciprocal condition number\" above.\n")
-  })
-  
-  flr$se = sqrt(diag(XmmtWmatXmminv))
-  flr$z = b / flr$se
-  flr$approx_pval = 2 * pnorm(-abs(flr$z))
+  if (drop_collinear_variables){
+	coefs = flr$coefficients #save originals
+	flr$coefficients = array(NA, p)
+	flr$coefficients[variables_retained] = coefs #all dropped variables will be NA's
+  }
+  names(flr$coefficients) = original_col_names
+  flr$regressor_names = original_col_names
+  flr$rank = ncol(Xmm)
+  flr$deviance = -2 * flr$loglikelihood 
+  flr$aic = flr$deviance + 2 * flr$rank
+  flr$do_inference_on_var = do_inference_on_var #pass back to the user which variables, if could even be none at this point after collinear variables were dropped
+
+  if (any(do_inference_on_var)){
+	  b = flr$coefficients[variables_retained]  
+	  
+	  flr$se = 						array(NA, p)
+	  flr$z = 						array(NA, p)
+	  flr$approx_pval = 			array(NA, p)
+	  names(flr$se) =   			original_col_names
+	  names(flr$z) =   				original_col_names
+	  names(flr$approx_pval) =   	original_col_names
+	  
+	  #compute the std errors of the coefficient estimators 
+	  #we compute them via notes found in https://web.stanford.edu/class/archive/stats/stats200/stats200.1172/Lecture26.pdf
+	  exp_Xmm_dot_b = exp(Xmm %*% b)
+	  w = as.numeric(exp_Xmm_dot_b / (1  + exp_Xmm_dot_b)^2)
+	  XmmtWmatXmm = eigen_Xt_times_diag_w_times_X(Xmm, w, num_cores) #t(Xmm) %*% diag(w) %*% Xmm
+	  
+	  if (sum(do_inference_on_var) > 2){ #this seems to be the cutoff in simulations...
+		  tryCatch({
+			  XmmtWmatXmminv = eigen_inv(XmmtWmatXmm)
+		  }, 
+		  error = function(e){
+			  print(e)
+			  stop("Error in inverting X^T X.\nTry setting drop_collinear_variables = TRUE\nto automatically drop perfectly collinear variables.\n")
+		  })
+		  
+		  flr$se[do_inference_on_var] = sqrt(diag(XmmtWmatXmminv))[do_inference_on_var]		  
+	  } else {
+		  for (j in which(do_inference_on_var)){
+			  flr$se[j] = eigen_det(XmmtWmatXmm[-j, -j]) / eigen_det(XmmtWmatXmm)
+		  }
+	  }
+
+	  flr$z[do_inference_on_var] = 				b / flr$se
+	  flr$approx_pval[do_inference_on_var] = 	2 * pnorm(-abs(flr$z))		
+  }
+
   #return
   class(flr) = "fast_logistic_regression"
   flr
@@ -118,17 +164,21 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 summary.fast_logistic_regression = function(object, ...){
   checkmate::assert_choice(class(object), c("fast_logistic_regression", "fast_logistic_regression_stepwise"))
   if (!object$converged){
-    warning("fast LR did not converge")
+      warning("fast LR did not converge")
   }
-  df = data.frame(
-    approx_coef = object$coefficients,
-    approx_se = object$se,
-    approx_z = object$z,
-    approx_pval = object$approx_pval,
-    signif = ifelse(object$approx_pval < 0.001, "***", ifelse(object$approx_pval < 0.01, "**", ifelse(object$approx_pval < 0.05, "*", "")))
-  )
-  rownames(df) = object$regressor_names
-  df
+  if (!any(object$do_inference_on_var)){
+	  cat("please refit the model with the \"do_inference\" argument set to true.\n")
+  } else {
+	  df = data.frame(
+	    approx_coef = object$coefficients,
+	    approx_se = object$se,
+	    approx_z = object$z,
+	    approx_pval = object$approx_pval,
+	    signif = ifelse(object$approx_pval < 0.001, "***", ifelse(object$approx_pval < 0.01, "**", ifelse(object$approx_pval < 0.05, "*", "")))
+	  )
+	  rownames(df) = object$regressor_names
+	  df
+  }
 }
 
 #' FastLR Wrapper Summary
@@ -214,7 +264,7 @@ print.fast_logistic_regression_stepwise = function(x, ...){
 #' 	}
 predict.fast_logistic_regression = function(object, newdata, type = "response", ...){
   checkmate::assert_class(object, "fast_logistic_regression")
-  assert_model_matrix(newdata)
+  assert_numeric_matrix(newdata)
   checkmate::assert_choice(type, c("link", "response"))
   
   #if new_data has more features than training data, we can subset it
@@ -283,7 +333,6 @@ predict.fast_logistic_regression_stepwise = function(object, newdata, type = "re
 #' @param use_intercept   			Should we automatically begin with an intercept? Default is \code{TRUE}.
 #' @param drop_collinear_variables 	Parameter used in \code{fast_logistic_regression}. See documentation there.
 #' @param lm_fit_tol	  			Parameter used in \code{fast_logistic_regression}. See documentation there.
-#' @param solve_tol       			Parameter used in \code{fast_logistic_regression}. See documentation there.
 #' @param verbose         			Print out messages during the loop? Default is \code{TRUE}.
 #' @param ...             			Other arguments to be passed to \code{fastLR} (see documentation there)
 #'
@@ -304,9 +353,8 @@ fast_logistic_regression_stepwise_forward = function(
 		verbose = TRUE, 
 		drop_collinear_variables = FALSE, 
 		lm_fit_tol = 1e-7, 
-		solve_tol = .Machine$double.eps, 
 		...){
-  assert_model_matrix(Xmm)
+  assert_numeric_matrix(Xmm)
   ybin = assert_binary_vector_then_cast_to_numeric(ybin)
   if (length(ybin) != nrow(Xmm)){
     stop("The number of rows in Xmm must be equal to the length of ybin")
@@ -349,8 +397,9 @@ fast_logistic_regression_stepwise_forward = function(
       Xmmtemp = Xmmt
       Xmmtemp = cbind(Xmmtemp, Xmm[, j, drop = FALSE])
       # tryCatch({
-        flrtemp = fast_logistic_regression(Xmmtemp, ybin, drop_collinear_variables, lm_fit_tol, solve_tol)
-        pvals[j] = flrtemp$approx_pval[ncol(Xmmtemp)] #the last one
+		ptemp = ncol(Xmmtemp)
+        flrtemp = fast_logistic_regression(Xmmtemp, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = c(rep(FALSE, ptemp - 1), TRUE))
+        pvals[j] = flrtemp$approx_pval[ptemp] #the last one
         cat("   sub iteration #", i_j, "of", length(js_to_try), "with feature", colnames(Xmm)[j], "resulted in pval", pvals[j], "\n")
       # }, error = function(e){
       #   cat("   iter #", i_j, "of", length(js_to_try), "with feature", colnames(Xmm)[j], "resulted in ERROR\n")
@@ -370,7 +419,7 @@ fast_logistic_regression_stepwise_forward = function(
     }
   }
   #return some information you would like to see
-  flr_stepwise = list(js = js, pvals_star = pvals_star, flr = fast_logistic_regression(Xmmt, ybin, drop_collinear_variables, lm_fit_tol, solve_tol))
+  flr_stepwise = list(js = js, pvals_star = pvals_star, flr = fast_logistic_regression(Xmmt, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = TRUE))
   class(flr_stepwise) = "fast_logistic_regression_stepwise"
   flr_stepwise
 }
@@ -535,23 +584,97 @@ general_confusion_results = function(yhat, yfac, proportions_scaled_by_column = 
 	)
 }
 
+#' A fast Xt [times] diag(w) [times] X function
+#' 
+#' Via the eigen package
+#' 
+#' @param X					A numeric matrix of size n x p 
+#' @param w 				A numeric vector of length p
+#' @param num_cores 		The number of cores to use. Unless p is large, keep to the default of 1.
+#' 
+#' @return					The resulting matrix 
+#' 
+#' @export
+#' @examples
+#'   n = 100
+#'   p = 10
+#'   X = matrix(rnorm(n * p), nrow = n, ncol = p)
+#'   w = rnorm(p)
+#'   eigen_Xt_times_diag_w_times_X(X, w)
+eigen_Xt_times_diag_w_times_X = function(X, w, num_cores = 1){
+	assert_numeric_matrix(X)
+	assert_numeric(w)
+	assert_true(nrow(X) == length(w))
+	assert_count(num_cores, positive = TRUE)
+	if (!exists("eigen_Xt_times_diag_w_times_X_cpp", envir = fastLogisticRegressionWrap_globals)){
+		eigen_Xt_times_diag_w_times_X_cpp = Rcpp::cppFunction(depends = "RcppEigen", '					
+		Eigen::MatrixXd eigen_Xt_times_diag_w_times_X_cpp(const Eigen::Map<Eigen::MatrixXd> X, const Eigen::Map<Eigen::VectorXd> w, int n_cores) {
+			Eigen::setNbThreads(n_cores);
+			return X.transpose() * w.asDiagonal() * X;
+		}
+		')
+		assign("eigen_Xt_times_diag_w_times_X_cpp", eigen_Xt_times_diag_w_times_X_cpp, fastLogisticRegressionWrap_globals)
+	}
+	eigen_Xt_times_diag_w_times_X_cpp = get("eigen_Xt_times_diag_w_times_X_cpp", fastLogisticRegressionWrap_globals)
+	eigen_Xt_times_diag_w_times_X_cpp(X, w, num_cores)
+}
 
-#how much faster is fastLR over glm?
-# set.seed(123)
-# n = 100
-# p = 1
-# x = matrix(rnorm(n * p), n)
-# beta = runif(p)
-# xb = c(x %*% beta)
-# p = 1 / (1 + exp(-xb))
-# y = rbinom(n, 1, p)
-# 
-# system.time(res1 <- glm.fit(x, y, family = binomial()))
-# system.time(res2 <- fastLR(x, y))
-# max(abs(res1$coefficients - res2$coefficients))
+#' A fast solve(X) function
+#' 
+#' Via the eigen package
+#' 
+#' @param X					A numeric matrix of size p x p
+#' @param num_cores 		The number of cores to use. Unless p is large, keep to the default of 1.
+#' 
+#' @return					The resulting matrix 
+#' 
+#' @export
+#' @examples
+#'   p = 10
+#'   eigen_inv(matrix(rnorm(p^2), nrow = p))
+eigen_inv = function(X, num_cores = 1){
+	assert_numeric_matrix(X)
+	assert_true(ncol(X) == nrow(X))
+	assert_count(num_cores, positive = TRUE)
+	if (!exists("eigen_inv_cpp", envir = fastLogisticRegressionWrap_globals)){
+		eigen_inv_cpp = Rcpp::cppFunction(depends = "RcppEigen", '
+			Eigen::MatrixXd eigen_inv_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
+			Eigen::setNbThreads(n_cores);
+			return X.inverse();
+		}
+		')
+		assign("eigen_inv_cpp", eigen_inv_cpp, fastLogisticRegressionWrap_globals)
+	}
+	eigen_inv_cpp = get("eigen_inv_cpp", fastLogisticRegressionWrap_globals)
+	eigen_inv_cpp(X, num_cores)
+}
 
-#unit test
-# ybin_test = as.numeric(MASS::Pima.te$type == "Yes")
-# summary(glm(ybin_test ~ . - type, MASS::Pima.te, family = "binomial"))
-# flr = fast_logistic_regression(Xmm = model.matrix(~ . - type, MASS::Pima.te), ybin = ybin_test)
-# summary(flr)
+#' A fast det(X) function
+#' 
+#' Via the eigen package
+#' 
+#' @param X					A numeric matrix of size p x p
+#' @param num_cores 		The number of cores to use. Unless p is large, keep to the default of 1.
+#' 
+#' @return					The determinant as a scalar numeric value
+#' 
+#' @export
+#' @examples
+#'   p = 30
+#'   eigen_det(matrix(rnorm(p^2), nrow = p))
+eigen_det = function(X, num_cores = 1){
+	assert_numeric_matrix(X)
+	assert_true(ncol(X) == nrow(X))
+	assert_count(num_cores, positive = TRUE)
+	if (!exists("eigen_det_cpp", envir = fastLogisticRegressionWrap_globals)){
+		eigen_det_cpp = Rcpp::cppFunction(depends = "RcppEigen", '					
+		double eigen_det_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
+			Eigen::setNbThreads(n_cores);
+			return X.determinant();
+		}
+		')
+		assign("eigen_det_cpp", eigen_det_cpp, fastLogisticRegressionWrap_globals)
+	}
+	eigen_det_cpp = get("eigen_det_cpp", fastLogisticRegressionWrap_globals)
+	eigen_det_cpp(X, num_cores)
+}

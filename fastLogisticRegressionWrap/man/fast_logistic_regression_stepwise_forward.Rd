@@ -12,7 +12,6 @@ fast_logistic_regression_stepwise_forward(
   verbose = TRUE,
   drop_collinear_variables = FALSE,
   lm_fit_tol = 1e-07,
-  solve_tol = .Machine$double.eps,
   ...
 )
 }
@@ -30,8 +29,6 @@ fast_logistic_regression_stepwise_forward(
 \item{drop_collinear_variables}{Parameter used in \code{fast_logistic_regression}. See documentation there.}
 
 \item{lm_fit_tol}{Parameter used in \code{fast_logistic_regression}. See documentation there.}
-
-\item{solve_tol}{Parameter used in \code{fast_logistic_regression}. See documentation there.}
 
 \item{...}{Other arguments to be passed to \code{fastLR} (see documentation there)}
 }
