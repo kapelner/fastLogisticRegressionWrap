@@ -26,10 +26,12 @@ assert_numeric_matrix = function(Xmm){
 #' 										no linear log-odds probability effect? Default is \code{FALSE} for inference on none (for speed). If not default, then \code{TRUE}
 #' 										to indicate inference should be computed for all variables. If a logical vector of size \code{ncol(Xmm)} is passed in then
 #' 										the indicies of the \code{TRUE} denotes which variables to compute inference for. If variables are dropped when
-#' 										\code{drop_collinear_variables = TRUE}, then indicies will likewise be dropped from this vector.
+#' 										\code{drop_collinear_variables = TRUE}, then indicies will likewise be dropped from this vector. We do not recommend using this type
+#' 										of piecewise specification until we understand how it behaves in simulation. Note: if you are just comparing
+#' 										nested models using anova, there is no need to compute inference for coefficients (keep the default of \code{FALSE} for speed).
 #' @param num_cores						Number of cores to use to speed up matrix multiplication and matrix inversion (used only during inference computation). Default is 1.
 #' 										Unless the number of variables, i.e. \code{ncol(Xmm)}, is large, there does not seem to be a performance gain in using multiple cores.
-#' @param ...   						Other arguments to be passed to \code{fastLR} (see documentation there)
+#' @param ...   						Other arguments to be passed to \code{fastLR}. See documentation there.
 #'
 #' @return      A list of raw results
 #' @export
@@ -56,6 +58,7 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	  do_inference_on_var = rep(do_inference_on_var, p)
   }
   names(do_inference_on_var) = original_col_names
+  any_inference_originally = any(do_inference_on_var)
   
   if (length(ybin) != nrow(Xmm)){
     stop("The number of rows in Xmm must be equal to the length of ybin")
@@ -64,35 +67,41 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
   #cat("rank Xmm:", Matrix::rankMatrix(Xmm), "\n")
 	
   variables_retained = rep(TRUE, p)
+  names(variables_retained) = original_col_names
   if (drop_collinear_variables){
 	  collinear_variables = c()
 	  repeat {
-		  b = coef(lm(ybin ~ 0 + Xmm))
+		  b = coef(lm.fit(Xmm, ybin, tol = lm_fit_tol))
 		  b_NA = b[is.na(b)]
 		  if (length(b_NA) == 0){
 			  break
 		  }
 		  bad_var = gsub("Xmm", "", names(b_NA)[1])
 		  #cat("bad_var", bad_var, "\n")
-		  Xmm = Xmm[, colnames(Xmm) != bad_var] #kill this bad variable!!
-		  do_inference_on_var = do_inference_on_var[colnames(Xmm) != bad_var]
-		  variables_retained[colnames(Xmm) == bad_var] = FALSE
+		  Xmm = Xmm[, colnames(Xmm) != bad_var] #remove these bad variable(s) from the data!!
 		  collinear_variables = c(collinear_variables, bad_var)
 	  }
-	  warning(paste("Dropped the following variables due to collinearity:\n", paste0(collinear_variables, collapse = ", ")))
-	  
+	  #if (length(collinear_variables) > 1){
+	  #	  warning(paste("Dropped the following variables due to collinearity:\n", paste0(collinear_variables, collapse = ", ")))
+	  #}	  
 	  #cat("ncol Xmm after:", ncol(Xmm), "\n")
 	  #cat("rank Xmm after:", Matrix::rankMatrix(Xmm), "\n")
-	  b = coef(lm.fit(Xmm, ybin, tol = lm_fit_tol))
+	  #b = coef(lm.fit(Xmm, ybin, tol = lm_fit_tol))
 	  #print(b)
 	  #solve(t(Xmm) %*% Xmm, tol = inversion_tol)
-	  rm(b, b_NA, bad_var, collinear_variables)
+	  do_inference_on_var = do_inference_on_var[!(names(do_inference_on_var) %in% collinear_variables)]
+	  if (!any(do_inference_on_var) & any_inference_originally){
+		  warning("There is no longer any inference to compute as all variables specified were collinear and thus dropped from the model fit.")
+	  }
+	  variables_retained[collinear_variables] = FALSE
   }
   
   flr = RcppNumerical::fastLR(Xmm, ybin, ...)
   flr$Xmm = Xmm
   flr$ybin = ybin
+  flr$variables_retained = variables_retained
   if (drop_collinear_variables){
+	flr$collinear_variables = collinear_variables
 	coefs = flr$coefficients #save originals
 	flr$coefficients = array(NA, p)
 	flr$coefficients[variables_retained] = coefs #all dropped variables will be NA's
@@ -117,27 +126,28 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	  #compute the std errors of the coefficient estimators 
 	  #we compute them via notes found in https://web.stanford.edu/class/archive/stats/stats200/stats200.1172/Lecture26.pdf
 	  exp_Xmm_dot_b = exp(Xmm %*% b)
-	  w = as.numeric(exp_Xmm_dot_b / (1  + exp_Xmm_dot_b)^2)
+	  w = as.numeric(exp_Xmm_dot_b / (1 + exp_Xmm_dot_b)^2)
 	  XmmtWmatXmm = eigen_Xt_times_diag_w_times_X(Xmm, w, num_cores) #t(Xmm) %*% diag(w) %*% Xmm
 	  
 	  if (sum(do_inference_on_var) > 2){ #this seems to be the cutoff in simulations...
-		  tryCatch({
-			  XmmtWmatXmminv = eigen_inv(XmmtWmatXmm)
+		  tryCatch({ #compute the entire inverse (this could probably be sped up by only computing the diagonal a la https://web.stanford.edu/~lexing/diagonal.pdf but I have not found that implemented anywhere)
+			  XmmtWmatXmminv = eigen_inv(XmmtWmatXmm, num_cores)
 		  }, 
 		  error = function(e){
 			  print(e)
 			  stop("Error in inverting X^T X.\nTry setting drop_collinear_variables = TRUE\nto automatically drop perfectly collinear variables.\n")
 		  })
 		  
-		  flr$se[do_inference_on_var] = sqrt(diag(XmmtWmatXmminv))[do_inference_on_var]		  
-	  } else {
-		  for (j in which(do_inference_on_var)){
-			  flr$se[j] = eigen_det(XmmtWmatXmm[-j, -j]) / eigen_det(XmmtWmatXmm)
+		  flr$se[variables_retained] = sqrt(diag(XmmtWmatXmminv))
+	  } else { #only compute the few entries of the inverse that are necessary. This could be sped up using https://math.stackexchange.com/questions/64420/is-there-a-faster-way-to-calculate-a-few-diagonal-elements-of-the-inverse-of-a-h
+		  sqrt_det_XmmtWmatXmm = sqrt(eigen_det(XmmtWmatXmm, num_cores))
+		  for (j in which(variables_retained)){
+			  flr$se[j] = sqrt(eigen_det(XmmtWmatXmm[-j, -j, drop = FALSE], num_cores)) / sqrt_det_XmmtWmatXmm
 		  }
 	  }
 
-	  flr$z[do_inference_on_var] = 				b / flr$se
-	  flr$approx_pval[do_inference_on_var] = 	2 * pnorm(-abs(flr$z))		
+	  flr$z[variables_retained] = 				b / flr$se[variables_retained]
+	  flr$approx_pval[variables_retained] = 	2 * pnorm(-abs(flr$z[variables_retained]))
   }
 
   #return
@@ -167,14 +177,14 @@ summary.fast_logistic_regression = function(object, ...){
       warning("fast LR did not converge")
   }
   if (!any(object$do_inference_on_var)){
-	  cat("please refit the model with the \"do_inference\" argument set to true.\n")
+	  cat("please refit the model with the \"do_inference_on_var\" argument set to true.\n")
   } else {
 	  df = data.frame(
 	    approx_coef = object$coefficients,
 	    approx_se = object$se,
 	    approx_z = object$z,
 	    approx_pval = object$approx_pval,
-	    signif = ifelse(object$approx_pval < 0.001, "***", ifelse(object$approx_pval < 0.01, "**", ifelse(object$approx_pval < 0.05, "*", "")))
+	    signif = ifelse(is.na(object$approx_pval), "", ifelse(object$approx_pval < 0.001, "***", ifelse(object$approx_pval < 0.01, "**", ifelse(object$approx_pval < 0.05, "*", ""))))
 	  )
 	  rownames(df) = object$regressor_names
 	  df
@@ -268,7 +278,7 @@ predict.fast_logistic_regression = function(object, newdata, type = "response", 
   checkmate::assert_choice(type, c("link", "response"))
   
   #if new_data has more features than training data, we can subset it
-  old_data_features = colnames(object$Xmm)
+  old_data_features = object$regressor_names
   newdata = newdata[, old_data_features]
   
   #now we need to make sure newdata is legal
@@ -325,18 +335,24 @@ predict.fast_logistic_regression_stepwise = function(object, newdata, type = "re
 
 #' Rapid Forward Stepwise Logistic Regression
 #' 
-#' Returns most of what you get from glm
+#' Roughly duplicates the following \code{glm}-style code:
+#' 
+#'  \code{nullmod = glm(ybin ~ 0,     data.frame(Xmm), family = binomial)}
+#'  \code{fullmod = glm(ybin ~ 0 + ., data.frame(Xmm), family = binomial)}
+#'  \code{forwards = step(nullmod, scope = list(lower = formula(nullmod), upper = formula(fullmod)), direction = "forward", trace = 0)}
 #'
-#' @param Xmm             			The model.matrix for X (you need to create this yourself before)
-#' @param ybin            			The binary response vector
+#' @param Xmm             			The model.matrix for X (you need to create this yourself before).
+#' @param ybin            			The binary response vector.
+#' @param mode						"aic" (default, fast) or "pval" (slow, but possibly yields a better model).
 #' @param pval_threshold  			The significance threshold to include a new variable. Default is \code{0.05}.
+#' 									If \code{mode == "aic"}, this argument is ignored.
 #' @param use_intercept   			Should we automatically begin with an intercept? Default is \code{TRUE}.
-#' @param drop_collinear_variables 	Parameter used in \code{fast_logistic_regression}. See documentation there.
-#' @param lm_fit_tol	  			Parameter used in \code{fast_logistic_regression}. See documentation there.
+#' @param drop_collinear_variables 	Parameter used in \code{fast_logistic_regression}. Default is \code{FALSE}. See documentation there.
+#' @param lm_fit_tol	  			Parameter used in \code{fast_logistic_regression}. Default is \code{1e-7}. See documentation there.
 #' @param verbose         			Print out messages during the loop? Default is \code{TRUE}.
-#' @param ...             			Other arguments to be passed to \code{fastLR} (see documentation there)
+#' @param ...             			Other arguments to be passed to \code{fastLR}. See documentation there.
 #'
-#' @return                A list of raw results
+#' @return                			A list of raw results
 #' @export
 #' @examples
 #'  \dontrun{
@@ -348,6 +364,7 @@ predict.fast_logistic_regression_stepwise = function(object, newdata, type = "re
 fast_logistic_regression_stepwise_forward = function(
 		Xmm, 
 		ybin, 
+		mode = "aic",
 		pval_threshold = 0.05, 
 		use_intercept = TRUE, 
 		verbose = TRUE, 
@@ -359,7 +376,12 @@ fast_logistic_regression_stepwise_forward = function(
   if (length(ybin) != nrow(Xmm)){
     stop("The number of rows in Xmm must be equal to the length of ybin")
   }
-  assert_numeric(pval_threshold, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
+  assert_choice(mode, c("aic", "pval"))
+  mode_is_aic = (mode == "aic")
+  if (!mode_is_aic){
+	  assert_numeric(pval_threshold, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
+  }
+  
   assert_logical(use_intercept)
   assert_logical(verbose)
   
@@ -385,41 +407,103 @@ fast_logistic_regression_stepwise_forward = function(
     js = 0
     iter = 0
   }
-  pvals_star = c()
+  if (mode_is_aic){
+	  aics_star = c()
+	  last_aic_star = .Machine$double.xmax #anything will beat this
+  } else {
+	  pvals_star = c()
+  }
+  
   repeat {
     js_to_try = setdiff(1 : p, js)
     if (length(js_to_try) == 0){
       break
     }
-    pvals = array(NA, p)
+	if (mode_is_aic){
+		aics = array(NA, p)
+	} else {
+		pvals = array(NA, p)	
+	}
+    
     for (i_j in 1 : length(js_to_try)){
       j = js_to_try[i_j]
       Xmmtemp = Xmmt
       Xmmtemp = cbind(Xmmtemp, Xmm[, j, drop = FALSE])
       # tryCatch({
 		ptemp = ncol(Xmmtemp)
-        flrtemp = fast_logistic_regression(Xmmtemp, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = c(rep(FALSE, ptemp - 1), TRUE))
-        pvals[j] = flrtemp$approx_pval[ptemp] #the last one
-        cat("   sub iteration #", i_j, "of", length(js_to_try), "with feature", colnames(Xmm)[j], "resulted in pval", pvals[j], "\n")
+		do_inference_on_var = 	if (mode_is_aic){
+									FALSE
+								} else {
+									c(rep(FALSE, ptemp - 1), TRUE)
+								}
+        flrtemp = fast_logistic_regression(Xmmtemp, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = do_inference_on_var)
+		if (mode_is_aic){
+			aics[j] = flrtemp$aic
+		} else {
+			if (!is.null(flrtemp$approx_pval)){ #if the last variable got dropped due to collinearity, we skip this
+				pvals[j] = flrtemp$approx_pval[ptemp] #the last one
+			}			
+		}
+	
+		if (verbose){
+			cat("   sub iteration #", i_j, "of", length(js_to_try), "with feature", colnames(Xmm)[j], "resulted in ")
+			if (mode_is_aic){
+				cat("aic", aics[j], "\n")
+			} else {
+				cat("pval", pvals[j], "\n")	
+			}
+			
+		}
       # }, error = function(e){
       #   cat("   iter #", i_j, "of", length(js_to_try), "with feature", colnames(Xmm)[j], "resulted in ERROR\n")
       # })
     }
-    if (!any(pvals < pval_threshold, na.rm = TRUE)){
-      break
-    }
-    j_star = which.min(pvals)
+	if (mode_is_aic){
+		if (min(aics, na.rm = TRUE) > last_aic_star){
+			break
+		}
+	} else {
+		if (!any(pvals < pval_threshold, na.rm = TRUE)){
+			break
+		}
+	}
+
+	j_star = 	if (mode_is_aic){
+					which.min(aics)
+				} else {
+					which.min(pvals)
+				}
+	
+	#if (is.na(j_star) | is.null(j_star) | is.na(aics[j_star])){
+	#	stop("j_star problem")
+	#}
     js = c(js, j_star)
-    pvals_star = c(pvals_star, pvals[j_star])
+	if (mode_is_aic){
+		aics_star = c(aics_star, aics[j_star])
+		last_aic_star = aics[j_star]
+	} else {
+		pvals_star = c(pvals_star, pvals[j_star])
+	}	
+    
     Xmmt = cbind(Xmmt, Xmm[, j_star, drop = FALSE])
     
     iter = iter + 1
     if (verbose){
-      cat("iteration #", iter, "of possibly", p, "added feature #", j_star, "named", colnames(Xmm)[j_star], "with pval", pvals[j_star], "\n")
+      cat("iteration #", iter, "of possibly", p, "added feature #", j_star, "named", colnames(Xmm)[j_star], "with ")
+	  if (mode_is_aic){
+		  cat("aic", aics[j_star], "\n")
+	  } else {
+		  cat("pval", pvals[j_star], "\n")
+	  }					  
     }
   }
   #return some information you would like to see
-  flr_stepwise = list(js = js, pvals_star = pvals_star, flr = fast_logistic_regression(Xmmt, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = TRUE))
+  flr_stepwise = list(js = js, flr = fast_logistic_regression(Xmmt, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = TRUE))
+  if (mode_is_aic){
+	  flr_stepwise$aics = aics
+  } else {
+	  flr_stepwise$pvals_star = pvals_star
+  }  
   class(flr_stepwise) = "fast_logistic_regression_stepwise"
   flr_stepwise
 }

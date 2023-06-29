@@ -29,12 +29,14 @@ still get p-values near 1 indicating high collinearity, we recommend making this
 no linear log-odds probability effect? Default is \code{FALSE} for inference on none (for speed). If not default, then \code{TRUE}
 to indicate inference should be computed for all variables. If a logical vector of size \code{ncol(Xmm)} is passed in then
 the indicies of the \code{TRUE} denotes which variables to compute inference for. If variables are dropped when
-\code{drop_collinear_variables = TRUE}, then indicies will likewise be dropped from this vector.}
+\code{drop_collinear_variables = TRUE}, then indicies will likewise be dropped from this vector. We do not recommend using this type
+of piecewise specification until we understand how it behaves in simulation. Note: if you are just comparing
+nested models using anova, there is no need to compute inference for coefficients (keep the default of \code{FALSE} for speed).}
 
 \item{num_cores}{Number of cores to use to speed up matrix multiplication and matrix inversion (used only during inference computation). Default is 1.
 Unless the number of variables, i.e. \code{ncol(Xmm)}, is large, there does not seem to be a performance gain in using multiple cores.}
 
-\item{...}{Other arguments to be passed to \code{fastLR} (see documentation there)}
+\item{...}{Other arguments to be passed to \code{fastLR}. See documentation there.}
 }
 \value{
 A list of raw results

@@ -146,26 +146,65 @@ microbenchmark(
 
 
 pacman::p_load(fastLogisticRegressionWrap, microbenchmark)
+
 set.seed(123)
-n = 10000
-p = 400
-x = cbind(1, matrix(rnorm(n * p), n))
-beta = runif(p + 1)
-xb = c(x %*% beta)
-prob_y_eq_1 = 1 / (1 + exp(-xb))
-y = rbinom(n, 1, prob_y_eq_1)
-rm(beta, xb, prob_y_eq_1)
+n = 5000
+p = 500 #must be even
+X = cbind(1, matrix(rnorm(n * p), n))
+# colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
+beta = c(runif(p / 2 + 1), rep(0, p / 2))
+y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
 
 microbenchmark(
-  glm = glm(y ~ 0 + x, family = binomial()),
-  flr = fast_logistic_regression(x, y, do_inference_on_var = TRUE),
-  flr_just_one_coef = fast_logistic_regression(x, y, do_inference_on_var = c(TRUE, rep(FALSE, p))),
+  glm = glm(y ~ 0 + ., data.frame(X), family = binomial()),
+  flr = fast_logistic_regression(X, y, do_inference_on_var = TRUE),
+  times = 3
+)
+
+
+# flr = fast_logistic_regression(X, y, do_inference_on_var = TRUE)
+# flr_stepwise = fast_logistic_regression_stepwise_forward(X, y, drop_collinear_variables = FALSE, verbose = TRUE, mode = "aic")
+
+set.seed(123)
+n = 5000
+p = 500 #must be even
+X = cbind(1, matrix(rnorm(n * p), n))
+# colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
+beta = c(runif(p / 2 + 1), rep(0, p / 2))
+y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
+
+microbenchmark(
+  flr1 = fast_logistic_regression(X, y, do_inference_on_var = TRUE, num_cores = 1),
+  flr2 = fast_logistic_regression(X, y, do_inference_on_var = TRUE, num_cores = 2),
+  flr4 = fast_logistic_regression(X, y, do_inference_on_var = TRUE, num_cores = 4),
   times = 10
 )
-system.time(res1 <- glm(y ~ 0 + x, family = binomial()))
-system.time(res2 <- fast_logistic_regression(x, y, do_inference_on_var = TRUE))
+
+n = 1000
+p = 100 #must be even
+X = cbind(1, matrix(rnorm(n * p), n))
+beta = c(runif(p / 2 + 1), rep(0, p / 2))
+y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
+
+microbenchmark( #stepwise benchmark
+  glm_stepwise = {
+    fullmod = glm(y ~ 0 + ., data = data.frame(X), family = binomial)
+    nothing = glm(y ~ 0,     data = data.frame(X), family = binomial)
+    forwards = step(nothing, scope = list(lower = formula(nothing), 
+                      upper = formula(fullmod)), direction = "forward", trace = 0)
+  },
+  flr_stepwise = fast_logistic_regression_stepwise_forward(X, y, verbose = FALSE),
+  times = 3
+)
+
+
+
+system.time(res1 <- glm(y ~ 0 + X, family = binomial()))
+system.time(res2 <- fast_logistic_regression(X, y, do_inference_on_var = TRUE))
+system.time(res3 <- fast_logistic_regression(X, y, do_inference_on_var = c(TRUE, rep(FALSE, p))))
 summary(res1)
 summary(res2)
+summary(res3)
 
 solve_tol = .Machine$double.eps
 system.time({XmmtWmatXmminv = solve(XmmtWmatXmm, tol = solve_tol)}) #NOTE: Matrix::chol2inv is slightly faster, but it requires another package

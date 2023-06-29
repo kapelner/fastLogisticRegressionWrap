@@ -7,6 +7,7 @@
 fast_logistic_regression_stepwise_forward(
   Xmm,
   ybin,
+  mode = "aic",
   pval_threshold = 0.05,
   use_intercept = TRUE,
   verbose = TRUE,
@@ -16,27 +17,35 @@ fast_logistic_regression_stepwise_forward(
 )
 }
 \arguments{
-\item{Xmm}{The model.matrix for X (you need to create this yourself before)}
+\item{Xmm}{The model.matrix for X (you need to create this yourself before).}
 
-\item{ybin}{The binary response vector}
+\item{ybin}{The binary response vector.}
 
-\item{pval_threshold}{The significance threshold to include a new variable. Default is \code{0.05}.}
+\item{mode}{"aic" (default, fast) or "pval" (slow, but possibly yields a better model).}
+
+\item{pval_threshold}{The significance threshold to include a new variable. Default is \code{0.05}.
+If \code{mode == "aic"}, this argument is ignored.}
 
 \item{use_intercept}{Should we automatically begin with an intercept? Default is \code{TRUE}.}
 
 \item{verbose}{Print out messages during the loop? Default is \code{TRUE}.}
 
-\item{drop_collinear_variables}{Parameter used in \code{fast_logistic_regression}. See documentation there.}
+\item{drop_collinear_variables}{Parameter used in \code{fast_logistic_regression}. Default is \code{FALSE}. See documentation there.}
 
-\item{lm_fit_tol}{Parameter used in \code{fast_logistic_regression}. See documentation there.}
+\item{lm_fit_tol}{Parameter used in \code{fast_logistic_regression}. Default is \code{1e-7}. See documentation there.}
 
-\item{...}{Other arguments to be passed to \code{fastLR} (see documentation there)}
+\item{...}{Other arguments to be passed to \code{fastLR}. See documentation there.}
 }
 \value{
 A list of raw results
 }
 \description{
-Returns most of what you get from glm
+Roughly duplicates the following \code{glm}-style code:
+}
+\details{
+\code{nullmod = glm(ybin ~ 0,     data.frame(Xmm), family = binomial)}
+ \code{fullmod = glm(ybin ~ 0 + ., data.frame(Xmm), family = binomial)}
+ \code{forwards = step(nullmod, scope = list(lower = formula(nullmod), upper = formula(fullmod)), direction = "forward", trace = 0)}
 }
 \examples{
  \dontrun{
