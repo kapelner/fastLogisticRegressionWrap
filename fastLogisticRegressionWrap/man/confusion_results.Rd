@@ -18,13 +18,12 @@ A list of raw results
 Provides a binary confusion table and error metrics
 }
 \examples{
- \dontrun{
-ybin = as.numeric(MASS::Pima.te$type == "Yes")
+library(MASS); data(Pima.te)
+ybin = as.numeric(Pima.te$type == "Yes")
 flr = fast_logistic_regression(
-  Xmm = model.matrix(~ . - type, MASS::Pima.te), 
+  Xmm = model.matrix(~ . - type, Pima.te), 
   ybin = ybin
 )
-phat = predict(flr, model.matrix(~ . - type, MASS::Pima.te))
+phat = predict(flr, model.matrix(~ . - type, Pima.te))
 confusion_results(phat > 0.5, ybin)
-	}
 }

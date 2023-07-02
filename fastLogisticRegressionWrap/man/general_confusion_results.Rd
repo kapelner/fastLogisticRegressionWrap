@@ -23,13 +23,13 @@ Provides a confusion table and error metrics for general factor vectors.
 There is no need for the same levels in the two vectors.
 }
 \examples{
- \dontrun{
-ybin = as.numeric(MASS::Pima.te$type == "Yes")
+library(MASS); data(Pima.te)
+ybin = as.numeric(Pima.te$type == "Yes")
 flr = fast_logistic_regression(
-  Xmm = model.matrix(~ . - type, MASS::Pima.te), 
+  Xmm = model.matrix(~ . - type, Pima.te), 
   ybin = ybin
 )
-phat = predict(flr, model.matrix(~ . - type, MASS::Pima.te))
+phat = predict(flr, model.matrix(~ . - type, Pima.te))
 yhat = array(NA, length(ybin))
 yhat[phat <= 1/3] = "no"
 yhat[phat >= 2/3] = "yes"
@@ -37,5 +37,4 @@ yhat[is.na(yhat)] = "maybe"
 general_confusion_results(factor(yhat, levels = c("no", "yes", "maybe")), factor(ybin)) 
 #you want the "no" to align with 0, the "yes" to align with 1 and the "maybe" to be 
 #last to align with nothing
-	}
 }

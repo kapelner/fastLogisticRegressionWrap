@@ -22,11 +22,10 @@ A numeric vector of length \code{nrow(newdata)} of estimates of P(Y = 1) for eac
 Predicts returning p-hats
 }
 \examples{
- \dontrun{
+library(MASS); data(Pima.te)
 flr = fast_logistic_regression_stepwise_forward(
-  Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-  ybin = as.numeric(MASS::Pima.te$type == "Yes")
+  Xmm = model.matrix(~ . - type, Pima.te), 
+  ybin = as.numeric(Pima.te$type == "Yes")
 )
-phat = predict(flr, model.matrix(~ . - type, MASS::Pima.te))
-	}
+phat = predict(flr, model.matrix(~ . - type, Pima.te))
 }

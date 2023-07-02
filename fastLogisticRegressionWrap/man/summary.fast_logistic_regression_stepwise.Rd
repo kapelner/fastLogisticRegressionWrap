@@ -18,10 +18,9 @@ The summary as a data.frame
 Returns the summary table a la glm
 }
 \examples{
- \dontrun{
+library(MASS); data(Pima.te)
 flr = fast_logistic_regression_stepwise_forward(
-	Xmm = model.matrix(~ . - type, MASS::Pima.te), 
- ybin = as.numeric(MASS::Pima.te$type == "Yes"))
+	Xmm = model.matrix(~ . - type, Pima.te), 
+ ybin = as.numeric(Pima.te$type == "Yes"))
 summary(flr)
-	}
 }

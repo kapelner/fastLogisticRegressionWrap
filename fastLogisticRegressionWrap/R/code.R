@@ -36,12 +36,11 @@ assert_numeric_matrix = function(Xmm){
 #' @return      A list of raw results
 #' @export
 #' @examples
-#'  \dontrun{
+#' library(MASS); data(Pima.te)
 #' flr = fast_logistic_regression(
-#' 	Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-#'  ybin = as.numeric(MASS::Pima.te$type == "Yes")
+#' 	 Xmm = model.matrix(~ . - type, Pima.te), 
+#'   ybin = as.numeric(Pima.te$type == "Yes")
 #' )
-#' 	}
 fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, do_inference_on_var = FALSE, num_cores = 1, ...){
   assert_numeric_matrix(Xmm)
   ybin = assert_binary_vector_then_cast_to_numeric(ybin)
@@ -165,12 +164,11 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 #' @return           The summary as a data.frame
 #' @export
 #' @examples
-#'  \dontrun{
+#' library(MASS); data(Pima.te)
 #' flr = fast_logistic_regression(
-#' 	Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-#'  ybin = as.numeric(MASS::Pima.te$type == "Yes"))
+#' 	Xmm = model.matrix(~ . - type, Pima.te), 
+#'  ybin = as.numeric(Pima.te$type == "Yes"))
 #' summary(flr)
-#' 	}
 summary.fast_logistic_regression = function(object, ...){
   checkmate::assert_choice(class(object), c("fast_logistic_regression", "fast_logistic_regression_stepwise"))
   if (!object$converged){
@@ -201,12 +199,11 @@ summary.fast_logistic_regression = function(object, ...){
 #' @return           The summary as a data.frame
 #' @export
 #' @examples
-#'  \dontrun{
+#' library(MASS); data(Pima.te)
 #' flr = fast_logistic_regression_stepwise_forward(
-#' 	Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-#'  ybin = as.numeric(MASS::Pima.te$type == "Yes"))
+#' 	Xmm = model.matrix(~ . - type, Pima.te), 
+#'  ybin = as.numeric(Pima.te$type == "Yes"))
 #' summary(flr)
-#' 	}
 summary.fast_logistic_regression_stepwise = function(object, ...){
 	checkmate::assert_class(object, "fast_logistic_regression_stepwise")
 	summary(object$flr, ...)
@@ -222,12 +219,11 @@ summary.fast_logistic_regression_stepwise = function(object, ...){
 #' @return      The summary as a data.frame
 #' @export
 #' @examples
-#'  \dontrun{
+#' library(MASS); data(Pima.te)
 #' flr = fast_logistic_regression(
-#' 	Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-#'  ybin = as.numeric(MASS::Pima.te$type == "Yes"))
+#' 	Xmm = model.matrix(~ . - type, Pima.te), 
+#'  ybin = as.numeric(Pima.te$type == "Yes"))
 #' print(flr)
-#' 	}
 print.fast_logistic_regression = function(x, ...){
 	summary(x, ...)
 }
@@ -242,12 +238,11 @@ print.fast_logistic_regression = function(x, ...){
 #' @return      The summary as a data.frame
 #' @export
 #' @examples
-#'  \dontrun{
+#' library(MASS); data(Pima.te)
 #' flr = fast_logistic_regression_stepwise_forward(
-#' 	Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-#'  ybin = as.numeric(MASS::Pima.te$type == "Yes"))
+#' 	Xmm = model.matrix(~ . - type, Pima.te), 
+#'  ybin = as.numeric(Pima.te$type == "Yes"))
 #' print(flr)
-#' 	}
 print.fast_logistic_regression_stepwise = function(x, ...){
 	summary(x$flr, ...)
 }
@@ -265,13 +260,12 @@ print.fast_logistic_regression_stepwise = function(x, ...){
 #' @return           A numeric vector of length \code{nrow(newdata)} of estimates of P(Y = 1) for each unit in \code{newdata}.
 #' @export
 #' @examples
-#'  \dontrun{
+#' library(MASS); data(Pima.te)
 #' flr = fast_logistic_regression(
-#'   Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-#'   ybin = as.numeric(MASS::Pima.te$type == "Yes")
+#'   Xmm = model.matrix(~ . - type, Pima.te), 
+#'   ybin = as.numeric(Pima.te$type == "Yes")
 #' )
-#' phat = predict(flr, model.matrix(~ . - type, MASS::Pima.te))
-#' 	}
+#' phat = predict(flr, model.matrix(~ . - type, Pima.te))
 predict.fast_logistic_regression = function(object, newdata, type = "response", ...){
   checkmate::assert_class(object, "fast_logistic_regression")
   assert_numeric_matrix(newdata)
@@ -321,13 +315,12 @@ predict.fast_logistic_regression = function(object, newdata, type = "response", 
 #' @return           A numeric vector of length \code{nrow(newdata)} of estimates of P(Y = 1) for each unit in \code{newdata}.
 #' @export
 #' @examples
-#'  \dontrun{
+#' library(MASS); data(Pima.te)
 #' flr = fast_logistic_regression_stepwise_forward(
-#'   Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-#'   ybin = as.numeric(MASS::Pima.te$type == "Yes")
+#'   Xmm = model.matrix(~ . - type, Pima.te), 
+#'   ybin = as.numeric(Pima.te$type == "Yes")
 #' )
-#' phat = predict(flr, model.matrix(~ . - type, MASS::Pima.te))
-#' 	}
+#' phat = predict(flr, model.matrix(~ . - type, Pima.te))
 predict.fast_logistic_regression_stepwise = function(object, newdata, type = "response", ...){	
 	checkmate::assert_class(object, "fast_logistic_regression_stepwise")
 	predict.fast_logistic_regression(object$flr, newdata, type = "response", ...)
@@ -355,12 +348,11 @@ predict.fast_logistic_regression_stepwise = function(object, newdata, type = "re
 #' @return                			A list of raw results
 #' @export
 #' @examples
-#'  \dontrun{
+#' library(MASS); data(Pima.te)
 #' flr = fast_logistic_regression_stepwise_forward(
-#'   Xmm = model.matrix(~ . - type, MASS::Pima.te), 
-#'   ybin = as.numeric(MASS::Pima.te$type == "Yes")
+#'   Xmm = model.matrix(~ . - type, Pima.te), 
+#'   ybin = as.numeric(Pima.te$type == "Yes")
 #' )
-#' 	}
 fast_logistic_regression_stepwise_forward = function(
 		Xmm, 
 		ybin, 
@@ -518,15 +510,14 @@ fast_logistic_regression_stepwise_forward = function(
 #' @return                A list of raw results
 #' @export
 #' @examples
-#'  \dontrun{
-#' ybin = as.numeric(MASS::Pima.te$type == "Yes")
+#' library(MASS); data(Pima.te)
+#' ybin = as.numeric(Pima.te$type == "Yes")
 #' flr = fast_logistic_regression(
-#'   Xmm = model.matrix(~ . - type, MASS::Pima.te), 
+#'   Xmm = model.matrix(~ . - type, Pima.te), 
 #'   ybin = ybin
 #' )
-#' phat = predict(flr, model.matrix(~ . - type, MASS::Pima.te))
+#' phat = predict(flr, model.matrix(~ . - type, Pima.te))
 #' confusion_results(phat > 0.5, ybin)
-#' 	}
 confusion_results = function(yhat, ybin){
   yhat = assert_binary_vector_then_cast_to_numeric(yhat)
   ybin = assert_binary_vector_then_cast_to_numeric(ybin)
@@ -585,13 +576,13 @@ confusion_results = function(yhat, ybin){
 #' @return                				A list of raw results
 #' @export
 #' @examples
-#'  \dontrun{
-#' ybin = as.numeric(MASS::Pima.te$type == "Yes")
+#' library(MASS); data(Pima.te)
+#' ybin = as.numeric(Pima.te$type == "Yes")
 #' flr = fast_logistic_regression(
-#'   Xmm = model.matrix(~ . - type, MASS::Pima.te), 
+#'   Xmm = model.matrix(~ . - type, Pima.te), 
 #'   ybin = ybin
 #' )
-#' phat = predict(flr, model.matrix(~ . - type, MASS::Pima.te))
+#' phat = predict(flr, model.matrix(~ . - type, Pima.te))
 #' yhat = array(NA, length(ybin))
 #' yhat[phat <= 1/3] = "no"
 #' yhat[phat >= 2/3] = "yes"
@@ -599,7 +590,6 @@ confusion_results = function(yhat, ybin){
 #' general_confusion_results(factor(yhat, levels = c("no", "yes", "maybe")), factor(ybin)) 
 #' #you want the "no" to align with 0, the "yes" to align with 1 and the "maybe" to be 
 #' #last to align with nothing
-#' 	}
 general_confusion_results = function(yhat, yfac, proportions_scaled_by_column = FALSE){
 	assert_factor(yhat)
 	assert_factor(yfac)
@@ -678,14 +668,14 @@ general_confusion_results = function(yhat, yfac, proportions_scaled_by_column = 
 #' 
 #' @return					The resulting matrix 
 #' 
-#' @useDynLib 				bare, .registration=TRUE
+#' @useDynLib 				fastLogisticRegressionWrap, .registration=TRUE
 #' @export
 #' @examples
 #'   n = 100
 #'   p = 10
 #'   X = matrix(rnorm(n * p), nrow = n, ncol = p)
 #'   w = rnorm(p)
-#'   eigen_Xt_times_diag_w_times_X(X, w)
+#'   eigen_Xt_times_diag_w_times_X(t(X), w)
 eigen_Xt_times_diag_w_times_X = function(X, w, num_cores = 1){
 	assert_numeric_matrix(X)
 	assert_numeric(w)
@@ -713,7 +703,7 @@ eigen_Xt_times_diag_w_times_X = function(X, w, num_cores = 1){
 #' 
 #' @return					The resulting matrix 
 #' 
-#' @useDynLib 				bare, .registration=TRUE
+#' @useDynLib 				fastLogisticRegressionWrap, .registration=TRUE
 #' @export
 #' @examples
 #'   p = 10
@@ -744,7 +734,7 @@ eigen_inv = function(X, num_cores = 1){
 #' 
 #' @return					The determinant as a scalar numeric value
 #' 
-#' @useDynLib 				bare, .registration=TRUE
+#' @useDynLib 				fastLogisticRegressionWrap, .registration=TRUE
 #' @export
 #' @examples
 #'   p = 30

@@ -24,5 +24,5 @@ Via the eigen package
   p = 10
   X = matrix(rnorm(n * p), nrow = n, ncol = p)
   w = rnorm(p)
-  eigen_Xt_times_diag_w_times_X(X, w)
+  eigen_Xt_times_diag_w_times_X(t(X), w)
 }

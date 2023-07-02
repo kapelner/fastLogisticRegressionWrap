@@ -45,10 +45,9 @@ A list of raw results
 Returns most of what you get from glm
 }
 \examples{
- \dontrun{
+library(MASS); data(Pima.te)
 flr = fast_logistic_regression(
-	Xmm = model.matrix(~ . - type, MASS::Pima.te), 
- ybin = as.numeric(MASS::Pima.te$type == "Yes")
+	 Xmm = model.matrix(~ . - type, Pima.te), 
+  ybin = as.numeric(Pima.te$type == "Yes")
 )
-	}
 }
