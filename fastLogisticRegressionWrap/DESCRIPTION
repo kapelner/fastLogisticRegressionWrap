@@ -1,7 +1,7 @@
 Package: fastLogisticRegressionWrap
 Type: Package
 Title: Fast Logistic Regression Wrapper
-Date: 2023-06-26
+Date: 2023-06-29
 Version: 1.0.0
 Authors@R: c(
 	person("Adam", "Kapelner", email = "kapelner@qc.cuny.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-5985-6792")),
@@ -13,6 +13,7 @@ Description: Provides very fast logistic regression with inferences plus other u
 Encoding: UTF-8
 Depends: R (>= 4.0.0)
 Imports: RcppNumerical, Rcpp, RcppEigen, checkmate, stats
+LinkingTo: Rcpp, RcppEigen
 URL: https://github.com/kapelner/fastLogisticRegressionWrap
 BugReports: https://github.com/kapelner/fastLogisticRegressionWrap/issues
 RoxygenNote: 7.2.3

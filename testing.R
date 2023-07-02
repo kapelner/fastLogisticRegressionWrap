@@ -11,36 +11,8 @@ flr = fast_logistic_regression(Xmm = model.matrix(~ . - type, MASS::Pima.te), yb
 summary(flr)
 
 
-# glm_obj = glm.fit(x, y, family = binomial())
-# fastlr_obj <- RcppNumerical::fastLR(x, y)
-# 
-# microbenchmark(
-#   glm_fit = glm.fit(x, y, family = binomial()),
-#   fast_lr_fit = RcppNumerical::fastLR(x, y),
-#   times = 10
-# )
-
-# system.time(res1 <- glm.fit(x, y, family = binomial()))
-# system.time(res2 <- RcppNumerical::fastLR(x, y))
-# system.time(res2 <- fast_logistic_regression(x, y))
-# system.time({qr_obj = qr(x); qr.Q(qr_obj); qr.R(qr_obj)})
-# 
-# system.time(res1 <- glm(y ~ x, family = binomial()))
-# system.time(res2 <- fast_logistic_regression(x, y, do_inference_on_var = TRUE))
-flr <- fast_logistic_regression(x, y)
-b = flr$coefficients
-system.time({exp_Xmm_dot_b = exp(flr$Xmm %*% b)})
-system.time({Wmat = diag(as.numeric(exp_Xmm_dot_b / (1  + exp_Xmm_dot_b)^2))})
-# system.time({XmmtWmatXmm = t(flr$Xmm) %*% Wmat %*% flr$Xmm})
-
-
-
 Rcpp::cppFunction(depends = "RcppEigen", '
 
-Eigen::MatrixXd sandwich_multiply_diag(const Eigen::Map<Eigen::MatrixXd> X, const Eigen::Map<Eigen::VectorXd> w, int n_cores) {
-  Eigen::setNbThreads(n_cores);
-  return X.transpose() * w.asDiagonal() * X;
-}
 
 Eigen::MatrixXd eigen_inv(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
   Eigen::setNbThreads(n_cores);
@@ -53,18 +25,6 @@ double eigen_det(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
 }
 
 ')
-
-sandwich_multiply(flr$Xmm, Wmat, n_cores = 1)
-XmmtWmatXmm = sandwich_multiply_diag(flr$Xmm, diag(Wmat), n_cores = 1)
-
-microbenchmark(
-  # R =    t(flr$Xmm) %*% Wmat %*% flr$Xmm,
-  eigen_within_R = sandwich_multiply(flr$Xmm, Wmat, n_cores = 1),
-  eigen_diag_within_R = sandwich_multiply_diag(flr$Xmm, diag(Wmat), n_cores = 1),
-  eigen_diag_within_R_nc_4 = sandwich_multiply_diag(flr$Xmm, diag(Wmat), n_cores = 4),
-  # eigen_within_package = fastLogisticRegressionWrap::sandwich_multiply_via_eigen_package_in_cpp(flr$Xmm, Wmat, n_cores = 1),
-  times = 1
-)
 
 p = 100
 M = matrix(rnorm(p^2), nrow = p)

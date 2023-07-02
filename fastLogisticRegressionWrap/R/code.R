@@ -678,6 +678,7 @@ general_confusion_results = function(yhat, yfac, proportions_scaled_by_column = 
 #' 
 #' @return					The resulting matrix 
 #' 
+#' @useDynLib 				bare, .registration=TRUE
 #' @export
 #' @examples
 #'   n = 100
@@ -690,16 +691,16 @@ eigen_Xt_times_diag_w_times_X = function(X, w, num_cores = 1){
 	assert_numeric(w)
 	assert_true(nrow(X) == length(w))
 	assert_count(num_cores, positive = TRUE)
-	if (!exists("eigen_Xt_times_diag_w_times_X_cpp", envir = fastLogisticRegressionWrap_globals)){
-		eigen_Xt_times_diag_w_times_X_cpp = Rcpp::cppFunction(depends = "RcppEigen", '					
-		Eigen::MatrixXd eigen_Xt_times_diag_w_times_X_cpp(const Eigen::Map<Eigen::MatrixXd> X, const Eigen::Map<Eigen::VectorXd> w, int n_cores) {
-			Eigen::setNbThreads(n_cores);
-			return X.transpose() * w.asDiagonal() * X;
-		}
-		')
-		assign("eigen_Xt_times_diag_w_times_X_cpp", eigen_Xt_times_diag_w_times_X_cpp, fastLogisticRegressionWrap_globals)
-	}
-	eigen_Xt_times_diag_w_times_X_cpp = get("eigen_Xt_times_diag_w_times_X_cpp", fastLogisticRegressionWrap_globals)
+#	if (!exists("eigen_Xt_times_diag_w_times_X_cpp", envir = fastLogisticRegressionWrap_globals)){
+#		eigen_Xt_times_diag_w_times_X_cpp = Rcpp::cppFunction(depends = "RcppEigen", '					
+#		Eigen::MatrixXd eigen_Xt_times_diag_w_times_X_cpp(const Eigen::Map<Eigen::MatrixXd> X, const Eigen::Map<Eigen::VectorXd> w, int n_cores) {
+#			Eigen::setNbThreads(n_cores);
+#			return X.transpose() * w.asDiagonal() * X;
+#		}
+#		')
+#		assign("eigen_Xt_times_diag_w_times_X_cpp", eigen_Xt_times_diag_w_times_X_cpp, fastLogisticRegressionWrap_globals)
+#	}
+#	eigen_Xt_times_diag_w_times_X_cpp = get("eigen_Xt_times_diag_w_times_X_cpp", fastLogisticRegressionWrap_globals)
 	eigen_Xt_times_diag_w_times_X_cpp(X, w, num_cores)
 }
 
@@ -712,6 +713,7 @@ eigen_Xt_times_diag_w_times_X = function(X, w, num_cores = 1){
 #' 
 #' @return					The resulting matrix 
 #' 
+#' @useDynLib 				bare, .registration=TRUE
 #' @export
 #' @examples
 #'   p = 10
@@ -720,16 +722,16 @@ eigen_inv = function(X, num_cores = 1){
 	assert_numeric_matrix(X)
 	assert_true(ncol(X) == nrow(X))
 	assert_count(num_cores, positive = TRUE)
-	if (!exists("eigen_inv_cpp", envir = fastLogisticRegressionWrap_globals)){
-		eigen_inv_cpp = Rcpp::cppFunction(depends = "RcppEigen", '
-			Eigen::MatrixXd eigen_inv_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
-			Eigen::setNbThreads(n_cores);
-			return X.inverse();
-		}
-		')
-		assign("eigen_inv_cpp", eigen_inv_cpp, fastLogisticRegressionWrap_globals)
-	}
-	eigen_inv_cpp = get("eigen_inv_cpp", fastLogisticRegressionWrap_globals)
+#	if (!exists("eigen_inv_cpp", envir = fastLogisticRegressionWrap_globals)){
+#		eigen_inv_cpp = Rcpp::cppFunction(depends = "RcppEigen", '
+#			Eigen::MatrixXd eigen_inv_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
+#			Eigen::setNbThreads(n_cores);
+#			return X.inverse();
+#		}
+#		')
+#		assign("eigen_inv_cpp", eigen_inv_cpp, fastLogisticRegressionWrap_globals)
+#	}
+#	eigen_inv_cpp = get("eigen_inv_cpp", fastLogisticRegressionWrap_globals)
 	eigen_inv_cpp(X, num_cores)
 }
 
@@ -742,6 +744,7 @@ eigen_inv = function(X, num_cores = 1){
 #' 
 #' @return					The determinant as a scalar numeric value
 #' 
+#' @useDynLib 				bare, .registration=TRUE
 #' @export
 #' @examples
 #'   p = 30
@@ -750,15 +753,15 @@ eigen_det = function(X, num_cores = 1){
 	assert_numeric_matrix(X)
 	assert_true(ncol(X) == nrow(X))
 	assert_count(num_cores, positive = TRUE)
-	if (!exists("eigen_det_cpp", envir = fastLogisticRegressionWrap_globals)){
-		eigen_det_cpp = Rcpp::cppFunction(depends = "RcppEigen", '					
-		double eigen_det_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
-			Eigen::setNbThreads(n_cores);
-			return X.determinant();
-		}
-		')
-		assign("eigen_det_cpp", eigen_det_cpp, fastLogisticRegressionWrap_globals)
-	}
-	eigen_det_cpp = get("eigen_det_cpp", fastLogisticRegressionWrap_globals)
+#	if (!exists("eigen_det_cpp", envir = fastLogisticRegressionWrap_globals)){
+#		eigen_det_cpp = Rcpp::cppFunction(depends = "RcppEigen", '					
+#		double eigen_det_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
+#			Eigen::setNbThreads(n_cores);
+#			return X.determinant();
+#		}
+#		')
+#		assign("eigen_det_cpp", eigen_det_cpp, fastLogisticRegressionWrap_globals)
+#	}
+#	eigen_det_cpp = get("eigen_det_cpp", fastLogisticRegressionWrap_globals)
 	eigen_det_cpp(X, num_cores)
 }
