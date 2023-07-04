@@ -106,7 +106,7 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	flr$coefficients[variables_retained] = coefs #all dropped variables will be NA's
   }
   names(flr$coefficients) = original_col_names
-  flr$regressor_names = original_col_names
+  flr$original_regressor_names = original_col_names
   flr$rank = ncol(Xmm)
   flr$deviance = -2 * flr$loglikelihood 
   flr$aic = flr$deviance + 2 * flr$rank
@@ -184,7 +184,7 @@ summary.fast_logistic_regression = function(object, ...){
 	    approx_pval = object$approx_pval,
 	    signif = ifelse(is.na(object$approx_pval), "", ifelse(object$approx_pval < 0.001, "***", ifelse(object$approx_pval < 0.01, "**", ifelse(object$approx_pval < 0.05, "*", ""))))
 	  )
-	  rownames(df) = object$regressor_names
+	  rownames(df) = object$original_regressor_names
 	  df
   }
 }
@@ -272,7 +272,7 @@ predict.fast_logistic_regression = function(object, newdata, type = "response", 
   checkmate::assert_choice(type, c("link", "response"))
   
   #if new_data has more features than training data, we can subset it
-  old_data_features = object$regressor_names
+  old_data_features = object$original_regressor_names
   newdata = newdata[, old_data_features]
   
   #now we need to make sure newdata is legal
@@ -285,16 +285,15 @@ predict.fast_logistic_regression = function(object, newdata, type = "response", 
   #   stop("newdata must have same columns as the original training data matrix in the same order.\nHere, newdata has features\n", paste(new_features_minus_old_features, collapse = ", "), "\nwhich training data did not have")
   # }
   new_features_minus_old_features = setdiff(old_data_features, new_data_features)
-  if (!all(colnames(newdata) == colnames(object$Xmm))){
+  if (!all(colnames(newdata) == old_data_features)){
     stop("newdata must have same columns as the original training data matrix in the same order.\nHere, training data has features\n", paste(new_features_minus_old_features, collapse = ", "), "\nwhich newdata did not have")
-  }
-  if (!all(new_data_features == old_data_features)){
-    stop("newdata must have same columns as the original training data matrix in the same order. They have the same features but the order is different.")
   }
   if (!object$converged){
     warning("fast LR did not converge")
   }
-  log_odds_predictions = c(newdata %*% object$coefficients)
+  b = object$coefficients
+  b[is.na(b)] = 0 #this is the way to ignore NA's
+  log_odds_predictions = c(newdata %*% b)
   if (type == "response"){
     exp_Xmm_dot_b = exp(log_odds_predictions)
     exp_Xmm_dot_b / (1  + exp_Xmm_dot_b)
