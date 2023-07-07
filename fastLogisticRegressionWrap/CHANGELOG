@@ -1,2 +1,5 @@
+version 1.0.1
+* Removed OMP dependency to please CRAN
+
 version 1.0.0
 * Initial Release
