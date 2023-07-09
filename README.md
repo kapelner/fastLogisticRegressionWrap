@@ -1,6 +1,8 @@
 # fastLogisticRegressionWrap
 
-The public repository for the R package fastLogisticRegressionWrap on CRAN which extends [fastLR](https://rdrr.io/cran/RcppNumerical/man/fastLR.html). Here are some compelling benchmarks found in `testing.R`.
+The public repository for the R package fastLogisticRegressionWrap on CRAN which extends [fastLR](https://rdrr.io/cran/RcppNumerical/man/fastLR.html). We now allow for using GPU
+speedups but not natively in the package (read further on). Here are some compelling benchmarks 
+found in `testing.R`.
 
 For vanilla logistic regression with coefficient standard error and p-values computed:
 
@@ -60,4 +62,13 @@ Unit: seconds
  flr_stepwise  4.786947  4.809651  4.880977  4.832356  4.927991  5.023627     3
 ```
 
-These multiples change with the `n, p, num_cores` used and your specific settings.
+
+For high `n` situations, parallelization may help further since matrix multiplication is embarassingly
+parallelizable. We welcome anyone that can show this helps performance as I've tried many `n x p` combinations
+without seeing a statistically significant boost. If `p` is large, whatever gains are swamped by the `p x p` matrix inversion step which is not very parallelizable.
+
+```
+
+```
+
+WARNING: all benchmark multiples shown here change with the `n, p, num_cores` used and your specific settings.

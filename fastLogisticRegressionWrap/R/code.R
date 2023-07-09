@@ -23,12 +23,15 @@ assert_numeric_matrix = function(Xmm){
 #' 										We use the default value from \code{base::lm.fit}'s which is 1e-7. If you fit the logistic regression and
 #' 										still get p-values near 1 indicating high collinearity, we recommend making this value smaller.
 #' @param do_inference_on_var			Which variables should we compute approximate standard errors of the coefficients and approximate p-values for the test of
-#' 										no linear log-odds probability effect? Default is \code{FALSE} for inference on none (for speed). If not default, then \code{TRUE}
-#' 										to indicate inference should be computed for all variables. If a logical vector of size \code{ncol(Xmm)} is passed in then
-#' 										the indicies of the \code{TRUE} denotes which variables to compute inference for. If variables are dropped when
-#' 										\code{drop_collinear_variables = TRUE}, then indicies will likewise be dropped from this vector. We do not recommend using this type
-#' 										of piecewise specification until we understand how it behaves in simulation. Note: if you are just comparing
+#' 										no linear log-odds probability effect? Default is \code{"none"} for inference on none (for speed). If not default, then \code{"all"}
+#' 										to indicate inference should be computed for all variables. The final option is to pass one index to indicate the column
+#' 										number of \code{Xmm} where inference is desired. We have a special routine to compute inference for one variable only. Note: if you are just comparing
 #' 										nested models using anova, there is no need to compute inference for coefficients (keep the default of \code{FALSE} for speed).
+#' @param Xt_times_diag_w_times_X		A custom function whose arguments are \code{X} (an n x m matrix), \code{w} (a vector of length m) and this function's \code{num_cores} 
+#' 										argument in that order. The function returns a m x m matrix which is the result of the computing X^T %*% diag(w) %*% X. If your custom  
+#' 										function is not parallelized, the \code{num_cores} argument is ignored. Default is \code{NULL} which uses the function 
+#' 										\code{\link{Xt_times_diag_w_times_X}} which is very fast. The only way we know of to beat the default is to use a method that employs
+#' 										GPUs. See README on github for more information.
 #' @param num_cores						Number of cores to use to speed up matrix multiplication and matrix inversion (used only during inference computation). Default is 1.
 #' 										Unless the number of variables, i.e. \code{ncol(Xmm)}, is large, there does not seem to be a performance gain in using multiple cores.
 #' @param ...   						Other arguments to be passed to \code{fastLR}. See documentation there.
@@ -41,16 +44,24 @@ assert_numeric_matrix = function(Xmm){
 #' 	 Xmm = model.matrix(~ . - type, Pima.te), 
 #'   ybin = as.numeric(Pima.te$type == "Yes")
 #' )
-fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, do_inference_on_var = FALSE, num_cores = 1, ...){
+fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, do_inference_on_var = "none", Xt_times_diag_w_times_X = NULL, num_cores = 1, ...){
   assert_numeric_matrix(Xmm)
   ybin = assert_binary_vector_then_cast_to_numeric(ybin)
   assert_logical(drop_collinear_variables)
   assert_numeric(lm_fit_tol, lower = 0)
-  assert_logical(do_inference_on_var)
+  assert_function(Xt_times_diag_w_times_X, null.ok = TRUE, args = c("X", "w", "num_cores"), ordered = TRUE, nargs = 3)
   assert_count(num_cores, positive = TRUE)
   original_col_names = colnames(Xmm)
   
   p = ncol(Xmm) #the original p before variables are dropped
+  
+  assert_choice(class(do_inference_on_var), c("character", "numeric", "integer"))
+  if (is(do_inference_on_var, "character")){
+	  assert_choice(do_inference_on_var, c("none", "all"))
+  } else {
+	  assert_choice(do_inference_on_var, 1 : p)
+  }
+  
   if (length(do_inference_on_var) > 1){
 	  assert_true(length(do_inference_on_var) == p) 
   } else {
@@ -126,7 +137,12 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	  #we compute them via notes found in https://web.stanford.edu/class/archive/stats/stats200/stats200.1172/Lecture26.pdf
 	  exp_Xmm_dot_b = exp(Xmm %*% b)
 	  w = as.numeric(exp_Xmm_dot_b / (1 + exp_Xmm_dot_b)^2)
-	  XmmtWmatXmm = eigen_Xt_times_diag_w_times_X(Xmm, w, num_cores) #t(Xmm) %*% diag(w) %*% Xmm
+	  XmmtWmatXmm =   if (is.null(Xt_times_diag_w_times_X)){
+						  eigen_Xt_times_diag_w_times_X(Xmm, w, num_cores) #t(Xmm) %*% diag(w) %*% Xmm
+					  } else {
+						  Xt_times_diag_w_times_X(Xmm, w, num_cores) #t(Xmm) %*% diag(w) %*% Xmm
+					  }
+	  
 	  
 	  if (sum(do_inference_on_var) > 2){ #this seems to be the cutoff in simulations...
 		  tryCatch({ #compute the entire inverse (this could probably be sped up by only computing the diagonal a la https://web.stanford.edu/~lexing/diagonal.pdf but I have not found that implemented anywhere)
@@ -139,6 +155,8 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 		  
 		  flr$se[variables_retained] = sqrt(diag(XmmtWmatXmminv))
 	  } else { #only compute the few entries of the inverse that are necessary. This could be sped up using https://math.stackexchange.com/questions/64420/is-there-a-faster-way-to-calculate-a-few-diagonal-elements-of-the-inverse-of-a-h
+		  #https://eigen.tuxfamily.org/dox/classEigen_1_1ConjugateGradient.html
+		  
 		  sqrt_det_XmmtWmatXmm = sqrt(eigen_det(XmmtWmatXmm, num_cores))
 		  for (j in which(variables_retained)){
 			  flr$se[j] = sqrt(eigen_det(XmmtWmatXmm[-j, -j, drop = FALSE], num_cores)) / sqrt_det_XmmtWmatXmm

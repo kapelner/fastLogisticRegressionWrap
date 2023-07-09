@@ -1,3 +1,6 @@
+version 1.0.2
+* Allows passing in of custom matrix multiplication function giving the opportunity to use GPUs.
+
 version 1.0.1
 * Removed OMP dependency to please CRAN
 

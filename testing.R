@@ -22,8 +22,8 @@ microbenchmark(
 )
 
 set.seed(123)
-n = 5000
-p = 500 #must be even
+n = 100000
+p = 50 #must be even
 X = cbind(1, matrix(rnorm(n * p), n))
 # colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
 beta = c(runif(p / 2 + 1), rep(0, p / 2))
@@ -33,7 +33,7 @@ microbenchmark(
   flr1 = fast_logistic_regression(X, y, do_inference_on_var = TRUE, num_cores = 1),
   flr2 = fast_logistic_regression(X, y, do_inference_on_var = TRUE, num_cores = 2),
   flr4 = fast_logistic_regression(X, y, do_inference_on_var = TRUE, num_cores = 4),
-  times = 10
+  times = 100
 )
 
 set.seed(123)
@@ -54,6 +54,23 @@ microbenchmark( #stepwise benchmark
   times = 3
 )
 
+set.seed(123)
+n = 5000
+p = 500 #must be even
+X = cbind(1, matrix(rnorm(n * p), n))
+# colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
+beta = c(runif(p / 2 + 1), rep(0, p / 2))
+y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
+
+microbenchmark(
+  flr_inference_all = fast_logistic_regression(X, y, do_inference_on_var = TRUE),
+  flr_one_inference = fast_logistic_regression(X, y, do_inference_on_var = c(TRUE, rep(FALSE, p))),
+  times = 10
+)
+profvis({fast_logistic_regression(X, y, do_inference_on_var = TRUE)})
+profvis({fast_logistic_regression(X, y, do_inference_on_var = c(TRUE, rep(FALSE, p)))})
+
+
 #make sure the functions on-the-fly compiled are the same speed as those in the package
 
 Rcpp::cppFunction(depends = "RcppEigen", '
@@ -71,9 +88,12 @@ double eigen_det(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
 
 ')
 
-p = 100
+p = 1000
 M = matrix(rnorm(p^2), nrow = p)
-fastLogisticRegressionWrap::eigen_det(M)
+
+profvis({fastLogisticRegressionWrap::eigen_det(M)})
+
+profvis({c(rep(0, p-1), eigen_det(M[-1,-1], 1) / eigen_det(M, 1))})
 
 microbenchmark(
   R_inv = diag(solve(M)),
@@ -148,3 +168,11 @@ microbenchmark(
   },
   times = 10 
 )
+
+fastLogisticRegressionWrap::eigen_inv(M, 1)
+det_M = fastLogisticRegressionWrap::eigen_det(M, 1)
+fastLogisticRegressionWrap::eigen_det(M[-1,-1], 1) / det_M
+
+
+
+
