@@ -5,6 +5,10 @@ The public repository for the R package fastLogisticRegressionWrap on CRAN which
 For vanilla logistic regression with coefficient standard error and p-values computed:
 
 ```
+library(fastLogisticRegressionWrap)
+# Welcome to fastLogisticRegressionWrap v1.0.1.
+library(microbenchmark)
+
 set.seed(123)
 n = 5000
 p = 500 #must be even
