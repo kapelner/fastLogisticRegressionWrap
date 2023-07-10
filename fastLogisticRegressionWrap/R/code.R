@@ -33,9 +33,9 @@ assert_numeric_matrix = function(Xmm){
 #' 										function is not parallelized, the \code{num_cores} argument is ignored. Default is \code{NULL} which uses the function 
 #' 										\code{\link{Xt_times_diag_w_times_X}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
 #' 										GPUs. See README on github for more information.
-#' @param matrix_inverse_fun			A custom matrix inversion function whose arguments are \code{X} (an n x n matrix) and this function's \code{num_cores} 
-#' 										argument in that order. If your custom function is not parallelized, the \code{num_cores} argument is ignored. The object returned must
-#' 										further have a defined function \code{diag} which returns the diagonal of the matrix as a vector. Default is \code{NULL} which uses the function 
+#' @param sqrt_diag_matrix_inverse_fun	A custom function that returns a numeric vector which is square root of the diagonal of the inverse of the inputted matrix. Its arguments are \code{X} 
+#' 										(an n x n matrix) and this function's \code{num_cores} argument in that order. If your custom function is not parallelized, the \code{num_cores} argument is ignored. 
+#' 										The object returned must further have a defined function \code{diag} which returns the diagonal of the matrix as a vector. Default is \code{NULL} which uses the function 
 #' 										\code{\link{eigen_inv}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
 #' 										GPUs. See README on github for more information.
 #' @param num_cores						Number of cores to use to speed up matrix multiplication and matrix inversion (used only during inference computation). Default is 1.
@@ -50,13 +50,13 @@ assert_numeric_matrix = function(Xmm){
 #' 	 Xmm = model.matrix(~ . - type, Pima.te), 
 #'   ybin = as.numeric(Pima.te$type == "Yes")
 #' )
-fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, do_inference_on_var = "none", Xt_times_diag_w_times_X_fun = NULL, matrix_inverse_fun = NULL, num_cores = 1, ...){
+fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, do_inference_on_var = "none", Xt_times_diag_w_times_X_fun = NULL, sqrt_diag_matrix_inverse_fun = NULL, num_cores = 1, ...){
   assert_numeric_matrix(Xmm)
   ybin = assert_binary_vector_then_cast_to_numeric(ybin)
   assert_logical(drop_collinear_variables)
   assert_numeric(lm_fit_tol, lower = 0)
   assert_function(Xt_times_diag_w_times_X_fun, null.ok = TRUE, args = c("X", "w", "num_cores"), ordered = TRUE, nargs = 3)
-  assert_function(matrix_inverse_fun, null.ok = TRUE, args = c("X", "num_cores"), ordered = TRUE, nargs = 2)
+  assert_function(sqrt_diag_matrix_inverse_fun, null.ok = TRUE, args = c("X", "num_cores"), ordered = TRUE, nargs = 2)
   assert_count(num_cores, positive = TRUE)
   original_col_names = colnames(Xmm)
   
@@ -149,18 +149,18 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	  
 	  if (do_inference_on_var == "all"){
 		  tryCatch({ #compute the entire inverse (this could probably be sped up by only computing the diagonal a la https://web.stanford.edu/~lexing/diagonal.pdf but I have not found that implemented anywhere)
-			  XmmtWmatXmminv =	  if (is.null(matrix_inverse_fun)){
-						  			eigen_inv(XmmtWmatXmm, num_cores)
-								  } else {
-								  	matrix_inverse_fun(XmmtWmatXmm, num_cores)
-								  }
+			  sqrt_diag_XmmtWmatXmminv =  if (is.null(matrix_inverse_fun)){
+											sqrt(diag(eigen_inv(XmmtWmatXmm, num_cores)))
+										  } else {
+										  	sqrt_diag_matrix_inverse_fun(XmmtWmatXmm, num_cores)
+										  }
 		  }, 
 		  error = function(e){
 			  print(e)
 			  stop("Error in inverting X^T X.\nTry setting drop_collinear_variables = TRUE\nto automatically drop perfectly collinear variables.\n")
 		  })
 		  
-		  flr$se[variables_retained] = sqrt(diag(XmmtWmatXmminv))
+		  flr$se[variables_retained] = sqrt_diag_XmmtWmatXmminv
 	  } else { #only compute the one entry of the inverse that is of interest. Right now this is too slow to be useful but eventually it will be implemente via:
 		  #https://eigen.tuxfamily.org/dox/classEigen_1_1ConjugateGradient.html
 		  

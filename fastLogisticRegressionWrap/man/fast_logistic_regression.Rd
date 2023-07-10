@@ -11,7 +11,7 @@ fast_logistic_regression(
   lm_fit_tol = 1e-07,
   do_inference_on_var = "none",
   Xt_times_diag_w_times_X_fun = NULL,
-  matrix_inverse_fun = NULL,
+  sqrt_diag_matrix_inverse_fun = NULL,
   num_cores = 1,
   ...
 )
@@ -40,9 +40,9 @@ function is not parallelized, the \code{num_cores} argument is ignored. Default 
 \code{\link{Xt_times_diag_w_times_X}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
 GPUs. See README on github for more information.}
 
-\item{matrix_inverse_fun}{A custom matrix inversion function whose arguments are \code{X} (an n x n matrix) and this function's \code{num_cores} 
-argument in that order. If your custom function is not parallelized, the \code{num_cores} argument is ignored. The object returned must
-further have a defined function \code{diag} which returns the diagonal of the matrix as a vector. Default is \code{NULL} which uses the function 
+\item{sqrt_diag_matrix_inverse_fun}{A custom function that returns a numeric vector which is square root of the diagonal of the inverse of the inputted matrix. Its arguments are \code{X} 
+(an n x n matrix) and this function's \code{num_cores} argument in that order. If your custom function is not parallelized, the \code{num_cores} argument is ignored. 
+The object returned must further have a defined function \code{diag} which returns the diagonal of the matrix as a vector. Default is \code{NULL} which uses the function 
 \code{\link{eigen_inv}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
 GPUs. See README on github for more information.}
 
