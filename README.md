@@ -73,10 +73,16 @@ without seeing a statistically significant boost. If `p` is large, whatever gain
 
 However, the real gains are to be had with GPUs. To duplicate the following, first set up package `GPUmatrix` by
 following the instructions [here](https://cran.r-project.org/web/packages/GPUmatrix/vignettes/vignette.html). The 
-demo below uses the `torch` setup.
+demo below uses the `torch` setup which requires:
 
 ```
-
+Sys.setenv(CUDA_HOME = "/usr/local/cuda-11.7/lib64")
+Sys.setenv(CUDA = "11.7")
+pacman::p_load(torch, GPUmatrix)
 ```
+
+Then we can compare:
+
+
 
 WARNING: all benchmark multiples shown here change with the `n, p, num_cores` used and your specific settings.

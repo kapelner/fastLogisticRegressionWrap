@@ -25,12 +25,18 @@ assert_numeric_matrix = function(Xmm){
 #' @param do_inference_on_var			Which variables should we compute approximate standard errors of the coefficients and approximate p-values for the test of
 #' 										no linear log-odds probability effect? Default is \code{"none"} for inference on none (for speed). If not default, then \code{"all"}
 #' 										to indicate inference should be computed for all variables. The final option is to pass one index to indicate the column
-#' 										number of \code{Xmm} where inference is desired. We have a special routine to compute inference for one variable only. Note: if you are just comparing
+#' 										number of \code{Xmm} where inference is desired. We have a special routine to compute inference for one variable only. It consists of a conjugate
+#' 										gradient descent which is another approximation atop the coefficient-fitting approximation in RcppNumerical. Note: if you are just comparing
 #' 										nested models using anova, there is no need to compute inference for coefficients (keep the default of \code{FALSE} for speed).
-#' @param Xt_times_diag_w_times_X		A custom function whose arguments are \code{X} (an n x m matrix), \code{w} (a vector of length m) and this function's \code{num_cores} 
+#' @param Xt_times_diag_w_times_X_fun	A custom function whose arguments are \code{X} (an n x m matrix), \code{w} (a vector of length m) and this function's \code{num_cores} 
 #' 										argument in that order. The function must return an m x m R matrix class object which is the result of the computing X^T %*% diag(w) %*% X. If your custom  
 #' 										function is not parallelized, the \code{num_cores} argument is ignored. Default is \code{NULL} which uses the function 
-#' 										\code{\link{Xt_times_diag_w_times_X}} which is very fast. The only way we know of to beat the default is to use a method that employs
+#' 										\code{\link{Xt_times_diag_w_times_X}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
+#' 										GPUs. See README on github for more information.
+#' @param matrix_inverse_fun			A custom matrix inversion function whose arguments are \code{X} (an n x n matrix) and this function's \code{num_cores} 
+#' 										argument in that order. If your custom function is not parallelized, the \code{num_cores} argument is ignored. The object returned must
+#' 										further have a defined function \code{diag} which returns the diagonal of the matrix as a vector. Default is \code{NULL} which uses the function 
+#' 										\code{\link{eigen_inv}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
 #' 										GPUs. See README on github for more information.
 #' @param num_cores						Number of cores to use to speed up matrix multiplication and matrix inversion (used only during inference computation). Default is 1.
 #' 										Unless the number of variables, i.e. \code{ncol(Xmm)}, is large, there does not seem to be a performance gain in using multiple cores.
@@ -44,12 +50,13 @@ assert_numeric_matrix = function(Xmm){
 #' 	 Xmm = model.matrix(~ . - type, Pima.te), 
 #'   ybin = as.numeric(Pima.te$type == "Yes")
 #' )
-fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, do_inference_on_var = "none", Xt_times_diag_w_times_X = NULL, num_cores = 1, ...){
+fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE, lm_fit_tol = 1e-7, do_inference_on_var = "none", Xt_times_diag_w_times_X_fun = NULL, matrix_inverse_fun = NULL, num_cores = 1, ...){
   assert_numeric_matrix(Xmm)
   ybin = assert_binary_vector_then_cast_to_numeric(ybin)
   assert_logical(drop_collinear_variables)
   assert_numeric(lm_fit_tol, lower = 0)
-  assert_function(Xt_times_diag_w_times_X, null.ok = TRUE, args = c("X", "w", "num_cores"), ordered = TRUE, nargs = 3)
+  assert_function(Xt_times_diag_w_times_X_fun, null.ok = TRUE, args = c("X", "w", "num_cores"), ordered = TRUE, nargs = 3)
+  assert_function(matrix_inverse_fun, null.ok = TRUE, args = c("X"), nargs = 1)
   assert_count(num_cores, positive = TRUE)
   original_col_names = colnames(Xmm)
   
@@ -133,16 +140,20 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	  #we compute them via notes found in https://web.stanford.edu/class/archive/stats/stats200/stats200.1172/Lecture26.pdf
 	  exp_Xmm_dot_b = exp(Xmm %*% b)
 	  w = as.numeric(exp_Xmm_dot_b / (1 + exp_Xmm_dot_b)^2)
-	  XmmtWmatXmm =   if (is.null(Xt_times_diag_w_times_X)){
+	  XmmtWmatXmm =   if (is.null(Xt_times_diag_w_times_X_fun)){
 						  eigen_Xt_times_diag_w_times_X(Xmm, w, num_cores) #t(Xmm) %*% diag(w) %*% Xmm
 					  } else {
-						  Xt_times_diag_w_times_X(Xmm, w, num_cores) #t(Xmm) %*% diag(w) %*% Xmm
+						  Xt_times_diag_w_times_X_fun(Xmm, w, num_cores) #t(Xmm) %*% diag(w) %*% Xmm
 					  }
 	  
 	  
 	  if (do_inference_on_var == "all"){
 		  tryCatch({ #compute the entire inverse (this could probably be sped up by only computing the diagonal a la https://web.stanford.edu/~lexing/diagonal.pdf but I have not found that implemented anywhere)
-			  XmmtWmatXmminv = eigen_inv(XmmtWmatXmm, num_cores)
+			  XmmtWmatXmminv =	  if (is.null(matrix_inverse_fun)){
+						  			eigen_inv(XmmtWmatXmm, num_cores)
+								  } else {
+								  	matrix_inverse_fun(XmmtWmatXmm, num_cores)
+								  }
 		  }, 
 		  error = function(e){
 			  print(e)
@@ -150,7 +161,7 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 		  })
 		  
 		  flr$se[variables_retained] = sqrt(diag(XmmtWmatXmminv))
-	  } else { #only compute the few entries of the inverse that are necessary. This could be sped up using https://math.stackexchange.com/questions/64420/is-there-a-faster-way-to-calculate-a-few-diagonal-elements-of-the-inverse-of-a-h
+	  } else { #only compute the one entry of the inverse that is of interest. Right now this is too slow to be useful but eventually it will be implemente via:
 		  #https://eigen.tuxfamily.org/dox/classEigen_1_1ConjugateGradient.html
 		  
 		  sqrt_det_XmmtWmatXmm = sqrt(eigen_det(XmmtWmatXmm, num_cores))

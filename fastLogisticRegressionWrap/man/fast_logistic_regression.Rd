@@ -10,7 +10,8 @@ fast_logistic_regression(
   drop_collinear_variables = FALSE,
   lm_fit_tol = 1e-07,
   do_inference_on_var = "none",
-  Xt_times_diag_w_times_X = NULL,
+  Xt_times_diag_w_times_X_fun = NULL,
+  matrix_inverse_fun = NULL,
   num_cores = 1,
   ...
 )
@@ -29,13 +30,20 @@ still get p-values near 1 indicating high collinearity, we recommend making this
 \item{do_inference_on_var}{Which variables should we compute approximate standard errors of the coefficients and approximate p-values for the test of
 no linear log-odds probability effect? Default is \code{"none"} for inference on none (for speed). If not default, then \code{"all"}
 to indicate inference should be computed for all variables. The final option is to pass one index to indicate the column
-number of \code{Xmm} where inference is desired. We have a special routine to compute inference for one variable only. Note: if you are just comparing
+number of \code{Xmm} where inference is desired. We have a special routine to compute inference for one variable only. It consists of a conjugate
+gradient descent which is another approximation atop the coefficient-fitting approximation in RcppNumerical. Note: if you are just comparing
 nested models using anova, there is no need to compute inference for coefficients (keep the default of \code{FALSE} for speed).}
 
-\item{Xt_times_diag_w_times_X}{A custom function whose arguments are \code{X} (an n x m matrix), \code{w} (a vector of length m) and this function's \code{num_cores} 
+\item{Xt_times_diag_w_times_X_fun}{A custom function whose arguments are \code{X} (an n x m matrix), \code{w} (a vector of length m) and this function's \code{num_cores} 
 argument in that order. The function must return an m x m R matrix class object which is the result of the computing X^T %*% diag(w) %*% X. If your custom  
 function is not parallelized, the \code{num_cores} argument is ignored. Default is \code{NULL} which uses the function 
-\code{\link{Xt_times_diag_w_times_X}} which is very fast. The only way we know of to beat the default is to use a method that employs
+\code{\link{Xt_times_diag_w_times_X}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
+GPUs. See README on github for more information.}
+
+\item{matrix_inverse_fun}{A custom matrix inversion function whose arguments are \code{X} (an n x n matrix) and this function's \code{num_cores} 
+argument in that order. If your custom function is not parallelized, the \code{num_cores} argument is ignored. The object returned must
+further have a defined function \code{diag} which returns the diagonal of the matrix as a vector. Default is \code{NULL} which uses the function 
+\code{\link{eigen_inv}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
 GPUs. See README on github for more information.}
 
 \item{num_cores}{Number of cores to use to speed up matrix multiplication and matrix inversion (used only during inference computation). Default is 1.
