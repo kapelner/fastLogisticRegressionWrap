@@ -21,7 +21,7 @@ y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
 
 microbenchmark(
   glm = glm(y ~ 0 + ., data.frame(X), family = binomial()),
-  flr = fast_logistic_regression(X, y, do_inference_on_var = TRUE),
+  flr = fast_logistic_regression(X, y, do_inference_on_var = "all),
   times = 3
 )
 ```
@@ -73,16 +73,39 @@ without seeing a statistically significant boost. If `p` is large, whatever gain
 
 However, the real gains are to be had with GPUs. To duplicate the following, first set up package `GPUmatrix` by
 following the instructions [here](https://cran.r-project.org/web/packages/GPUmatrix/vignettes/vignette.html). The 
-demo below uses the `torch` setup which requires:
+demo below uses the `torch` setup which requires something a la:
 
 ```
 Sys.setenv(CUDA_HOME = "/usr/local/cuda-11.7/lib64")
 Sys.setenv(CUDA = "11.7")
-pacman::p_load(torch, GPUmatrix)
+library(torch)
+library(GPUmatrix)
 ```
 
-Then we can compare:
+We create the matrix multiplication and inverse custom function that uses CUDA and the GPU's via the `GPUmatrix` interface:
 
+```
+Xt_times_diag_w_times_X_gpu = function(X, w, num_cores){
+  Xgpu = gpu.matrix(X)
+  wgpu = gpu.matrix(diag(w))
+  matrix(GPUmatrix::t(Xgpu) %*% wgpu %*% Xgpu, nrow = ncol(Xgpu), ncol = ncol(Xgpu))
+}
 
+inverse_gpu = function(X, num_cores){
+  ginv(X)
+}
+```
+
+and then benchmark it with large n and p:
+
+```
+
+```
+
+to arrive at a gain of about 40%
+
+```
+
+```
 
 WARNING: all benchmark multiples shown here change with the `n, p, num_cores` used and your specific settings.
