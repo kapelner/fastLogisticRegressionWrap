@@ -140,7 +140,7 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 					  }
 	  
 	  
-	  if (do_any_inference == "all"){
+	  if (do_inference_on_var == "all"){
 		  tryCatch({ #compute the entire inverse (this could probably be sped up by only computing the diagonal a la https://web.stanford.edu/~lexing/diagonal.pdf but I have not found that implemented anywhere)
 			  XmmtWmatXmminv = eigen_inv(XmmtWmatXmm, num_cores)
 		  }, 
