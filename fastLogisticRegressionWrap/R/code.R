@@ -56,7 +56,7 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
   assert_logical(drop_collinear_variables)
   assert_numeric(lm_fit_tol, lower = 0)
   assert_function(Xt_times_diag_w_times_X_fun, null.ok = TRUE, args = c("X", "w", "num_cores"), ordered = TRUE, nargs = 3)
-  assert_function(matrix_inverse_fun, null.ok = TRUE, args = c("X", "num_cores"), ordered = TRUE, nargs = 1)
+  assert_function(matrix_inverse_fun, null.ok = TRUE, args = c("X", "num_cores"), ordered = TRUE, nargs = 2)
   assert_count(num_cores, positive = TRUE)
   original_col_names = colnames(Xmm)
   
