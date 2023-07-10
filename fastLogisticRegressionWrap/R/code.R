@@ -58,17 +58,12 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
   assert_choice(class(do_inference_on_var), c("character", "numeric", "integer"))
   if (is(do_inference_on_var, "character")){
 	  assert_choice(do_inference_on_var, c("none", "all"))
+	  do_inference_on_var_name = NULL
   } else {
 	  assert_choice(do_inference_on_var, 1 : p)
+	  do_inference_on_var_name = original_col_names[do_inference_on_var]
   }
-  
-  if (length(do_inference_on_var) > 1){
-	  assert_true(length(do_inference_on_var) == p) 
-  } else {
-	  do_inference_on_var = rep(do_inference_on_var, p)
-  }
-  names(do_inference_on_var) = original_col_names
-  any_inference_originally = any(do_inference_on_var)
+  do_any_inference = do_inference_on_var != "none"
   
   if (length(ybin) != nrow(Xmm)){
     stop("The number of rows in Xmm must be equal to the length of ybin")
@@ -99,9 +94,9 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	  #b = coef(lm.fit(Xmm, ybin, tol = lm_fit_tol))
 	  #print(b)
 	  #solve(t(Xmm) %*% Xmm, tol = inversion_tol)
-	  do_inference_on_var = do_inference_on_var[!(names(do_inference_on_var) %in% collinear_variables)]
-	  if (!any(do_inference_on_var) & any_inference_originally){
-		  warning("There is no longer any inference to compute as all variables specified were collinear and thus dropped from the model fit.")
+	  if (do_any_inference & !is.null(do_inference_on_var_name) & do_inference_on_var_name %in% collinear_variables){
+		  warning("There is no longer any inference to compute as the variables specified was collinear and thus dropped from the model fit.")
+		  do_any_inference = FALSE
 	  }
 	  variables_retained[collinear_variables] = FALSE
   }
@@ -109,6 +104,7 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
   flr = RcppNumerical::fastLR(Xmm, ybin, ...)
   flr$Xmm = Xmm
   flr$ybin = ybin
+  flr$do_inference_on_var = do_inference_on_var
   flr$variables_retained = variables_retained
   if (drop_collinear_variables){
 	flr$collinear_variables = collinear_variables
@@ -121,9 +117,9 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
   flr$rank = ncol(Xmm)
   flr$deviance = -2 * flr$loglikelihood 
   flr$aic = flr$deviance + 2 * flr$rank
-  flr$do_inference_on_var = do_inference_on_var #pass back to the user which variables, if could even be none at this point after collinear variables were dropped
+  
 
-  if (any(do_inference_on_var)){
+  if (do_any_inference){
 	  b = flr$coefficients[variables_retained]  
 	  
 	  flr$se = 						array(NA, p)
@@ -144,7 +140,7 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 					  }
 	  
 	  
-	  if (sum(do_inference_on_var) > 2){ #this seems to be the cutoff in simulations...
+	  if (do_any_inference == "all"){
 		  tryCatch({ #compute the entire inverse (this could probably be sped up by only computing the diagonal a la https://web.stanford.edu/~lexing/diagonal.pdf but I have not found that implemented anywhere)
 			  XmmtWmatXmminv = eigen_inv(XmmtWmatXmm, num_cores)
 		  }, 
