@@ -92,7 +92,7 @@ Xt_times_diag_w_times_X_gpu = function(X, w, num_cores){
 }
 
 sqrt_diag_matrix_inverse_gpu = function(X, num_cores){
-  sqrt(diag(solve(X)))
+  sqrt(GPUmatrix::diag(GPUmatrix::solve(X)))
 }
 ```
 
@@ -115,7 +115,7 @@ microbenchmark(
 )
 ```
 
-to arrive an additional gain of 4x performance boost:
+to arrive an additional 4x performance boost:
 
 ```
 Unit: milliseconds
