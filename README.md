@@ -71,6 +71,10 @@ For high `n` situations, parallelization may help further since matrix multiplic
 parallelizable. We welcome anyone that can show this helps performance as I've tried many `n x p` combinations
 without seeing a statistically significant boost. If `p` is large, whatever gains are swamped by the `p x p` matrix inversion step which is not very parallelizable.
 
+However, the real gains are to be had with GPUs. To duplicate the following, first set up package `GPUmatrix` by
+following the instructions [here](https://cran.r-project.org/web/packages/GPUmatrix/vignettes/vignette.html). The 
+demo below uses the `torch` setup.
+
 ```
 
 ```

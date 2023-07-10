@@ -28,7 +28,7 @@ assert_numeric_matrix = function(Xmm){
 #' 										number of \code{Xmm} where inference is desired. We have a special routine to compute inference for one variable only. Note: if you are just comparing
 #' 										nested models using anova, there is no need to compute inference for coefficients (keep the default of \code{FALSE} for speed).
 #' @param Xt_times_diag_w_times_X		A custom function whose arguments are \code{X} (an n x m matrix), \code{w} (a vector of length m) and this function's \code{num_cores} 
-#' 										argument in that order. The function returns a m x m matrix which is the result of the computing X^T %*% diag(w) %*% X. If your custom  
+#' 										argument in that order. The function must return an m x m R matrix class object which is the result of the computing X^T %*% diag(w) %*% X. If your custom  
 #' 										function is not parallelized, the \code{num_cores} argument is ignored. Default is \code{NULL} which uses the function 
 #' 										\code{\link{Xt_times_diag_w_times_X}} which is very fast. The only way we know of to beat the default is to use a method that employs
 #' 										GPUs. See README on github for more information.
