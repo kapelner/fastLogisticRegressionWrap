@@ -20,6 +20,22 @@ double eigen_det_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
   return X.determinant();
 }
 
+// [[Rcpp::export]]
+double eigen_compute_single_entry_of_diagonal_matrix_cpp(const Eigen::Map<Eigen::MatrixXd> M, int j, int n_cores) {
+  Eigen::setNbThreads(n_cores);
+
+  Eigen::VectorXd b;
+  b.resize(M.rows());
+  b.setZero();
+  b(j - 1) = 1;
+
+  Eigen::ConjugateGradient<Eigen::MatrixXd, Eigen::Lower|Eigen::Upper> cg;
+  cg.compute(M);
+  Eigen::VectorXd x = cg.solve(b);
+
+  return x(j - 1);
+}
+
 //// [[Rcpp::export]]
 //Eigen::MatrixXd least_squares_coefficient_estimate_cpp(const Eigen::Map<Eigen::MatrixXd> X, const Eigen::Map<Eigen::VectorXd> y, int n_cores) {
 //  Eigen::setNbThreads(n_cores);

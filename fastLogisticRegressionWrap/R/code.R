@@ -162,12 +162,7 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 		  
 		  flr$se[variables_retained] = sqrt_diag_XmmtWmatXmminv
 	  } else { #only compute the one entry of the inverse that is of interest. Right now this is too slow to be useful but eventually it will be implemente via:
-		  #https://eigen.tuxfamily.org/dox/classEigen_1_1ConjugateGradient.html
-		  
-		  sqrt_det_XmmtWmatXmm = sqrt(eigen_det(XmmtWmatXmm, num_cores))
-		  for (j in which(variables_retained)){
-			  flr$se[j] = sqrt(eigen_det(XmmtWmatXmm[-j, -j, drop = FALSE], num_cores)) / sqrt_det_XmmtWmatXmm
-		  }
+		flr$se[do_inference_on_var] = sqrt(eigen_compute_single_entry_of_diagonal_matrix(XmmtWmatXmm, do_inference_on_var, num_cores))
 	  }
 
 	  flr$z[variables_retained] = 				b / flr$se[variables_retained]
@@ -705,17 +700,38 @@ eigen_Xt_times_diag_w_times_X = function(X, w, num_cores = 1){
 	assert_numeric(w)
 	assert_true(nrow(X) == length(w))
 	assert_count(num_cores, positive = TRUE)
-#	if (!exists("eigen_Xt_times_diag_w_times_X_cpp", envir = fastLogisticRegressionWrap_globals)){
-#		eigen_Xt_times_diag_w_times_X_cpp = Rcpp::cppFunction(depends = "RcppEigen", '					
-#		Eigen::MatrixXd eigen_Xt_times_diag_w_times_X_cpp(const Eigen::Map<Eigen::MatrixXd> X, const Eigen::Map<Eigen::VectorXd> w, int n_cores) {
-#			Eigen::setNbThreads(n_cores);
-#			return X.transpose() * w.asDiagonal() * X;
-#		}
-#		')
-#		assign("eigen_Xt_times_diag_w_times_X_cpp", eigen_Xt_times_diag_w_times_X_cpp, fastLogisticRegressionWrap_globals)
-#	}
-#	eigen_Xt_times_diag_w_times_X_cpp = get("eigen_Xt_times_diag_w_times_X_cpp", fastLogisticRegressionWrap_globals)
+	
 	eigen_Xt_times_diag_w_times_X_cpp(X, w, num_cores)
+}
+
+#' Compute Single Value of the Diagonal of a Symmetric Matrix's Inverse
+#' 
+#' Via the eigen package's conjugate gradient descent algorithm.
+#' 
+#' @param M 			The symmetric matrix which to invert (and then extract one element of its diagonal)
+#' @param j 			The diagonal entry of \code{M}'s inverse
+#' @param num_cores 	The number of cores to use. Default is 1.
+#' 
+#' @return 				The value of m^{-1}_{j,j}
+#' 
+#' @author Adam Kapelner
+#' @export
+#' @examples
+#' 	n = 500
+#' 	X = matrix(rnorm(n^2), nrow = n, ncol = n)
+#' 	M = t(X) %*% X
+#' 	j = 137
+#' 	eigen_compute_single_entry_of_diagonal_matrix_cpp(M, j)
+#' 	solve(M)[j, j] #to ensure it's the same value
+
+eigen_compute_single_entry_of_diagonal_matrix = function(M, j, num_cores = 1){
+	assert_numeric_matrix(M)
+	assert_true(ncol(M) == nrow(M))
+	assert_count(j, positive = TRUE)
+	assert_numeric(j, upper = nrow(M))
+	assert_count(num_cores, positive = TRUE)
+	
+	eigen_compute_single_entry_of_diagonal_matrix_cpp(M, j, num_cores)
 }
 
 #' A fast solve(X) function
@@ -736,16 +752,7 @@ eigen_inv = function(X, num_cores = 1){
 	assert_numeric_matrix(X)
 	assert_true(ncol(X) == nrow(X))
 	assert_count(num_cores, positive = TRUE)
-#	if (!exists("eigen_inv_cpp", envir = fastLogisticRegressionWrap_globals)){
-#		eigen_inv_cpp = Rcpp::cppFunction(depends = "RcppEigen", '
-#			Eigen::MatrixXd eigen_inv_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
-#			Eigen::setNbThreads(n_cores);
-#			return X.inverse();
-#		}
-#		')
-#		assign("eigen_inv_cpp", eigen_inv_cpp, fastLogisticRegressionWrap_globals)
-#	}
-#	eigen_inv_cpp = get("eigen_inv_cpp", fastLogisticRegressionWrap_globals)
+	
 	eigen_inv_cpp(X, num_cores)
 }
 
@@ -767,15 +774,6 @@ eigen_det = function(X, num_cores = 1){
 	assert_numeric_matrix(X)
 	assert_true(ncol(X) == nrow(X))
 	assert_count(num_cores, positive = TRUE)
-#	if (!exists("eigen_det_cpp", envir = fastLogisticRegressionWrap_globals)){
-#		eigen_det_cpp = Rcpp::cppFunction(depends = "RcppEigen", '					
-#		double eigen_det_cpp(const Eigen::Map<Eigen::MatrixXd> X, int n_cores) {
-#			Eigen::setNbThreads(n_cores);
-#			return X.determinant();
-#		}
-#		')
-#		assign("eigen_det_cpp", eigen_det_cpp, fastLogisticRegressionWrap_globals)
-#	}
-#	eigen_det_cpp = get("eigen_det_cpp", fastLogisticRegressionWrap_globals)
+	
 	eigen_det_cpp(X, num_cores)
 }
