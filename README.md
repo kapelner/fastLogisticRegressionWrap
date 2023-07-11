@@ -1,6 +1,6 @@
 # fastLogisticRegressionWrap
 
-The public repository for the R package fastLogisticRegressionWrap on CRAN which extends [fastLR](https://rdrr.io/cran/RcppNumerical/man/fastLR.html). We now allow for using GPU
+The public repository for the R package fastLogisticRegressionWrap on CRAN which extends [RcppNumerical::fastLR](https://rdrr.io/cran/RcppNumerical/man/fastLR.html). We now allow for using GPU
 speedups but not natively in the package (read further on). Here are some compelling benchmarks 
 found in `testing.R`.
 
@@ -15,7 +15,7 @@ set.seed(123)
 n = 5000
 p = 500 #must be even
 X = cbind(1, matrix(rnorm(n * p), n))
-# colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
+colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
 beta = c(runif(p / 2 + 1), rep(0, p / 2))
 y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
 
@@ -104,7 +104,7 @@ set.seed(123)
 n = 5000
 p = 1000 #must be even
 X = cbind(1, matrix(rnorm(n * p), n))
-# colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
+colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
 beta = c(runif(p / 2 + 1), rep(0, p / 2))
 y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
 
@@ -132,7 +132,7 @@ set.seed(123)
 n = 5000
 p = 500 #must be even
 X = cbind(1, matrix(rnorm(n * p), n))
-# colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
+colnames(X) = c("(intercept)", paste0("x_useful_", 1 : (p / 2)), paste0("x_useless_", 1 : (p / 2)))
 beta = c(runif(p / 2 + 1), rep(0, p / 2))
 y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
 j = 137
