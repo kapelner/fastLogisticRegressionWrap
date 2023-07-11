@@ -26,13 +26,13 @@ microbenchmark(
 )
 ```
 
-yields a 35x speedup on one core:
+yields a 15x speedup on one core:
 
 ```
 Unit: milliseconds
- expr        min         lq       mean     median         uq       max neval
-  glm 10205.7267 10345.3674 10554.3971 10485.0080 10728.7324 10972.457     3
-  flr   282.7045   285.9829   303.0269   289.2613   313.1882   337.115     3
+ expr       min        lq      mean    median        uq       max neval
+  glm 3082.2709 3089.9263 3159.1201 3180.7372 3217.9334 3226.9130    10
+  flr  201.8558  202.6285  217.8595  204.7916  208.3821  333.0663    10
 ```
 
 For forward stepwise logistic regression using lowest AIC:
@@ -69,7 +69,8 @@ Unit: seconds
 
 For high `n` situations, parallelization may help further since matrix multiplication is embarassingly
 parallelizable. We welcome anyone that can show this helps performance as I've tried many `n x p` combinations
-without seeing a statistically significant boost. If `p` is large, whatever gains are swamped by the `p x p` matrix inversion step which is not very parallelizable.
+without seeing a statistically significant boost using the `num_cores` argument. 
+If `p` is large, whatever gains are seemingly swamped by the `p x p` matrix inversion step which is not very parallelizable.
 
 However, the real gains in parallelization are to be had with GPUs. To duplicate the following benchmark, first setup the 
 package `GPUmatrix` (whose source code is [here](https://github.com/ceslobfer/GPUmatrix)) by following the instructions [here](https://cran.r-project.org/web/packages/GPUmatrix/vignettes/vignette.html). The 
@@ -123,8 +124,8 @@ Unit: milliseconds
  flr_gpu 179.1967 192.4239 209.6288 194.4077 201.7585 339.7079    10
 ```
 
-We also implemented a fast method for inference for one of the coefficients. This is much faster
-in the case where p is large relative to n.
+We also implemented a fast method for inference for one of the coefficients. This gives a modest
+gain only in the case of medium p relative to n e.g.
 
 ```
 set.seed(123)
@@ -137,11 +138,20 @@ y = rbinom(n, 1, 1 / (1 + exp(-c(X %*% beta))))
 j = 137
 
 microbenchmark(
-  glm = coef(summary(glm(y ~ 0 + ., data.frame(X), family = "binomial")))[j, 4],
   flr_all = fast_logistic_regression(X, y, do_inference_on_var = "all")$approx_pval[j],
   flr_j = fast_logistic_regression(X, y, do_inference_on_var = j)$approx_pval[j],
-  times = 3
+  times = 10
 )
 ```
 
-WARNING: all benchmark multiples shown here change with the `n, p, num_cores` used and your specific settings.
+yields a 10% gain over computing inference for all coefficients:
+
+```
+Unit: milliseconds
+    expr      min       lq     mean  median       uq      max neval
+ flr_all 204.6230 205.4252 205.8986 205.870 206.1752 207.4855    10
+   flr_j 187.3354 188.1089 189.4443 189.082 189.9023 194.1588    10
+```
+
+
+Remember: all benchmark multiples shown here change with the `n, p, num_cores` used and your specific settings and hardware.

@@ -67,7 +67,8 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	  assert_choice(do_inference_on_var, c("none", "all"))
 	  do_inference_on_var_name = NULL
   } else {
-	  assert_choice(do_inference_on_var, 1 : p)
+	  assert_count(do_inference_on_var, positive = TRUE)
+	  assert_numeric(do_inference_on_var, upper = p)
 	  do_inference_on_var_name = original_col_names[do_inference_on_var]
   }
   do_any_inference = do_inference_on_var != "none"
