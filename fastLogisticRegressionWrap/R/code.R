@@ -31,7 +31,7 @@ assert_numeric_matrix = function(Xmm){
 #' @param Xt_times_diag_w_times_X_fun	A custom function whose arguments are \code{X} (an n x m matrix), \code{w} (a vector of length m) and this function's \code{num_cores} 
 #' 										argument in that order. The function must return an m x m R matrix class object which is the result of the computing X^T %*% diag(w) %*% X. If your custom  
 #' 										function is not parallelized, the \code{num_cores} argument is ignored. Default is \code{NULL} which uses the function 
-#' 										\code{\link{Xt_times_diag_w_times_X}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
+#' 										\code{\link{eigen_Xt_times_diag_w_times_X}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
 #' 										GPUs. See README on github for more information.
 #' @param sqrt_diag_matrix_inverse_fun	A custom function that returns a numeric vector which is square root of the diagonal of the inverse of the inputted matrix. Its arguments are \code{X} 
 #' 										(an n x n matrix) and this function's \code{num_cores} argument in that order. If your custom function is not parallelized, the \code{num_cores} argument is ignored. 
@@ -195,8 +195,8 @@ summary.fast_logistic_regression = function(object, ...){
   if (!object$converged){
       warning("fast LR did not converge")
   }
-  if (!any(object$do_inference_on_var)){
-	  cat("please refit the model with the \"do_inference_on_var\" argument set to true.\n")
+  if (object$do_inference_on_var == "none"){
+	  cat("please refit the model with the \"do_inference_on_var\" argument set to \"all\" or a single variable index number.\n")
   } else {
 	  df = data.frame(
 	    approx_coef = object$coefficients,
@@ -444,9 +444,9 @@ fast_logistic_regression_stepwise_forward = function(
       # tryCatch({
 		ptemp = ncol(Xmmtemp)
 		do_inference_on_var = 	if (mode_is_aic){
-									FALSE
+									"none"
 								} else {
-									c(rep(FALSE, ptemp - 1), TRUE)
+									ptemp - 1
 								}
         flrtemp = fast_logistic_regression(Xmmtemp, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = do_inference_on_var)
 		if (mode_is_aic){
@@ -510,7 +510,7 @@ fast_logistic_regression_stepwise_forward = function(
     }
   }
   #return some information you would like to see
-  flr_stepwise = list(js = js, flr = fast_logistic_regression(Xmmt, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = TRUE))
+  flr_stepwise = list(js = js, flr = fast_logistic_regression(Xmmt, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = "all"))
   if (mode_is_aic){
 	  flr_stepwise$aics = aics
   } else {
@@ -722,7 +722,7 @@ eigen_Xt_times_diag_w_times_X = function(X, w, num_cores = 1){
 #' 	X = matrix(rnorm(n^2), nrow = n, ncol = n)
 #' 	M = t(X) %*% X
 #' 	j = 137
-#' 	eigen_compute_single_entry_of_diagonal_matrix_cpp(M, j)
+#' 	eigen_compute_single_entry_of_diagonal_matrix(M, j)
 #' 	solve(M)[j, j] #to ensure it's the same value
 
 eigen_compute_single_entry_of_diagonal_matrix = function(M, j, num_cores = 1){

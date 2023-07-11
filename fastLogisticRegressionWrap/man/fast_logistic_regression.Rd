@@ -37,7 +37,7 @@ nested models using anova, there is no need to compute inference for coefficient
 \item{Xt_times_diag_w_times_X_fun}{A custom function whose arguments are \code{X} (an n x m matrix), \code{w} (a vector of length m) and this function's \code{num_cores} 
 argument in that order. The function must return an m x m R matrix class object which is the result of the computing X^T %*% diag(w) %*% X. If your custom  
 function is not parallelized, the \code{num_cores} argument is ignored. Default is \code{NULL} which uses the function 
-\code{\link{Xt_times_diag_w_times_X}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
+\code{\link{eigen_Xt_times_diag_w_times_X}} which is implemented with the Eigen C++ package and hence very fast. The only way we know of to beat the default is to use a method that employs
 GPUs. See README on github for more information.}
 
 \item{sqrt_diag_matrix_inverse_fun}{A custom function that returns a numeric vector which is square root of the diagonal of the inverse of the inputted matrix. Its arguments are \code{X} 

@@ -7,7 +7,7 @@
 eigen_compute_single_entry_of_diagonal_matrix(M, j, num_cores = 1)
 }
 \arguments{
-\item{M}{The matrix which to invert}
+\item{M}{The symmetric matrix which to invert (and then extract one element of its diagonal)}
 
 \item{j}{The diagonal entry of \code{M}'s inverse}
 
@@ -24,8 +24,8 @@ Via the eigen package's conjugate gradient descent algorithm.
 	X = matrix(rnorm(n^2), nrow = n, ncol = n)
 	M = t(X) \%*\% X
 	j = 137
-	solve(M)[j, j]
-	eigen_compute_single_entry_of_diagonal_matrix_cpp(M, j)
+	eigen_compute_single_entry_of_diagonal_matrix(M, j)
+	solve(M)[j, j] #to ensure it's the same value
 }
 \author{
 Adam Kapelner
