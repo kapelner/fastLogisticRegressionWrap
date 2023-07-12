@@ -1,6 +1,6 @@
 # fastLogisticRegressionWrap
 
-The public repository for the R package [fastLogisticRegressionWrap on CRAN](https://cran.rstudio.com/web/packages/fastLogisticRegressionWrap/) which extends [RcppNumerical::fastLR](https://rdrr.io/cran/RcppNumerical/man/fastLR.html). We now allow for using GPU
+The public repository for the R package [fastLogisticRegressionWrap](https://cran.rstudio.com/web/packages/fastLogisticRegressionWrap/) which extends [RcppNumerical::fastLR](https://rdrr.io/cran/RcppNumerical/man/fastLR.html). We now allow for using GPU
 speedups but not natively in the package (read further on). Here are some compelling benchmarks 
 found in `testing.R`.
 
