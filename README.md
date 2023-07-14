@@ -34,6 +34,35 @@ Unit: milliseconds
   flr  201.8558  202.6285  217.8595  204.7916  208.3821  333.0663    10
 ```
 
+This is also 2.5x faster than Python's `statsmodels.api.Logit` function:
+
+```
+import numpy as np 
+import statsmodels.api as sm
+from datetime import datetime
+
+np.random.seed(1984)
+n = 5000
+p = 500 #must be even
+p_over_two = int(p / 2)
+ones = np.ones(shape = [n,1], dtype = int)
+X = np.random.normal(0, 1, size = (n, p))
+Xint = np.hstack((ones, X))
+beta = np.concatenate((
+    np.random.uniform(low = 0.0, high = 1.0, size = p_over_two + 1), 
+    np.zeros(p_over_two)
+))
+y = np.random.binomial(1, 1 / (1 + np.exp(np.matmul(Xint, beta))), size = n)
+
+t_start = datetime.now()
+for i in range(1, 10):
+    log_reg = sm.Logit(y, Xint).fit()
+t_end = datetime.now()
+
+print((t_end - t_start).total_seconds() / 10 * 1000)
+#499.0879
+```
+
 For forward stepwise logistic regression using lowest AIC:
 
 ```
