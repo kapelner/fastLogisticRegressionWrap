@@ -55,11 +55,12 @@ beta = np.concatenate((
 y = np.random.binomial(1, 1 / (1 + np.exp(np.matmul(Xint, beta))), size = n)
 
 t_start = datetime.now()
-for i in range(1, 10):
+num_rep = 10
+for i in range(1, num_rep):
     log_reg = sm.Logit(y, Xint).fit()
 t_end = datetime.now()
 
-print((t_end - t_start).total_seconds() / 10 * 1000)
+print((t_end - t_start).total_seconds() / num_rep * 1000)
 #499.0879
 ```
 
