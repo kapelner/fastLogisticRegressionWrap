@@ -1,6 +1,9 @@
+version 1.1.1
+* Small bug fix when inference is not desired
+
 version 1.1.0
-* Allows passing in of a custom matrix multiplication function and a custom square root of the diagonal of a matrix inverse thereby giving the opportunity to use CUDA / GPUs
-* Includes a fast algorithm for inference of only one coefficient using conjugate gradient descent
+* Allows passing in of a custom matrix multiplication function and a custom square root of the diagonal of a matrix inverse thereby giving the opportunity to use CUDA / GPUs (see README on github)
+* Includes an algorithm for inference of only one coefficient using conjugate gradient descent which is faster than inference-for-all coefficients for some settings
 
 version 1.0.1
 * Removed OMP dependency to please CRAN

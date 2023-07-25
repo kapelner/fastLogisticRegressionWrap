@@ -102,9 +102,11 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
 	  #b = coef(lm.fit(Xmm, ybin, tol = lm_fit_tol))
 	  #print(b)
 	  #solve(t(Xmm) %*% Xmm, tol = inversion_tol)
-	  if (do_any_inference & !is.null(do_inference_on_var_name) & do_inference_on_var_name %in% collinear_variables){
-		  warning("There is no longer any inference to compute as the variables specified was collinear and thus dropped from the model fit.")
-		  do_any_inference = FALSE
+	  if (do_any_inference & !is.null(do_inference_on_var_name)){
+		  if (do_inference_on_var_name %in% collinear_variables){
+			  warning("There is no longer any inference to compute as the variables specified was collinear and thus dropped from the model fit.")
+			  do_any_inference = FALSE			  
+		  }
 	  }
 	  variables_retained[collinear_variables] = FALSE
   }
@@ -446,7 +448,7 @@ fast_logistic_regression_stepwise_forward = function(
 		do_inference_on_var = 	if (mode_is_aic){
 									"none"
 								} else {
-									ptemp - 1
+									"all" #I don't think single variable is ready for primetime yet
 								}
         flrtemp = fast_logistic_regression(Xmmtemp, ybin, drop_collinear_variables, lm_fit_tol, do_inference_on_var = do_inference_on_var)
 		if (mode_is_aic){
