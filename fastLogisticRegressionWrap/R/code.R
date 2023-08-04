@@ -637,6 +637,7 @@ general_confusion_results = function(yhat, yfac, proportions_scaled_by_column = 
 	
 	confusion_proportion_and_errors = matrix(NA, n_r_conf + 2, n_c_conf + 2)
 	if (proportions_scaled_by_column){
+		p = ncol(conf)
 		for (j in 1 : p){
 			confusion_proportion_and_errors[1 : n_r_conf, j] = conf[, j] / sum(conf[, j])		
 		}

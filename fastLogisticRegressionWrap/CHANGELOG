@@ -1,5 +1,6 @@
 version 1.1.1
 * Small bug fix when inference is not desired
+* Small bug fix when proportions_scaled_by_column = TRUE in the general_confusion_results function 
 
 version 1.1.0
 * Allows passing in of a custom matrix multiplication function and a custom square root of the diagonal of a matrix inverse thereby giving the opportunity to use CUDA / GPUs (see README on github)
