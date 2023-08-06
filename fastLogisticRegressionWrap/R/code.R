@@ -547,11 +547,11 @@ fast_logistic_regression_stepwise_forward = function(
 #' phat = predict(flr, model.matrix(~ . - type, Pima.te))
 #' confusion_results(phat > 0.5, ybin)
 confusion_results = function(yhat, ybin, skip_argument_checks = FALSE){  
+  n = length(yhat)
   if (!skip_argument_checks){
 	  assert_logical(skip_argument_checks)
 	  yhat = assert_binary_vector_then_cast_to_numeric(yhat)
 	  ybin = assert_binary_vector_then_cast_to_numeric(ybin)
-	  n = length(yhat)
 	  if (n != length(ybin)){
 		  stop("yhat and ybin must be same length")
 	  }	  
@@ -673,8 +673,7 @@ asymmetric_cost_explorer = function(
 			res[k, 2 : 5] = temp_res[idx, c(2, 3, 4, 1)]
 		}
 	}
-#	na.omit(res)
-res
+	res
 }
 
 #' General Confusion Table and Errors

@@ -4,12 +4,14 @@
 \alias{confusion_results}
 \title{Binary Confusion Table and Errors}
 \usage{
-confusion_results(yhat, ybin)
+confusion_results(yhat, ybin, skip_argument_checks = FALSE)
 }
 \arguments{
 \item{yhat}{The binary predictions}
 
 \item{ybin}{The true binary responses}
+
+\item{skip_argument_checks}{If \code{TRUE} it does not check this function's arguments for appropriateness. It is not recommended unless you truly need speed and thus the default is \code{FALSE}.}
 }
 \value{
 A list of raw results

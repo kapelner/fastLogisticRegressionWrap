@@ -4,10 +4,12 @@
 \alias{summary.fast_logistic_regression}
 \title{FastLR Wrapper Summary}
 \usage{
-\method{summary}{fast_logistic_regression}(object, ...)
+\method{summary}{fast_logistic_regression}(object, alpha_order = TRUE, ...)
 }
 \arguments{
 \item{object}{The object built using the \code{fast_logistic_regression} or \code{fast_logistic_regression_stepwise} wrapper functions}
+
+\item{alpha_order}{Should the coefficients be ordered in alphabetical order? Default is \code{TRUE}.}
 
 \item{...}{Other arguments to be passed to \code{summary}.}
 }

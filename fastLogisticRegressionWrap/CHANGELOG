@@ -1,7 +1,7 @@
 version 1.2.0
 * Function that can return desired asymmetric cost models
 * Alphabetical order of coefficients for the inference summary function
-* Big speedup to confusion_results function via a custom C++ table routine
+* Big speedup to confusion_results function via a custom C++ table routine and an option to perform argument appropriateness checks
 * Small bug fix when inference is not desired
 * Small bug fix when proportions_scaled_by_column = TRUE in the general_confusion_results function
 
