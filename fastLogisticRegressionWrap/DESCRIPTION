@@ -1,8 +1,8 @@
 Package: fastLogisticRegressionWrap
 Type: Package
 Title: Fast Logistic Regression Wrapper
-Date: 2023-08-04
-Version: 1.1.1
+Date: 2023-08-06
+Version: 1.2.0
 Authors@R: c(
 	person("Adam", "Kapelner", email = "kapelner@qc.cuny.edu", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-5985-6792")),
 	person("Beau", "Walker", email = "beau@methoddatascience.com", role = c("rev", "dtc"), comment = c(ORCID = "0000-0001-7872-4007")),

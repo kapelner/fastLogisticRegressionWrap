@@ -41,3 +41,22 @@ double eigen_compute_single_entry_of_diagonal_matrix_cpp(const Eigen::Map<Eigen:
 //  Eigen::setNbThreads(n_cores);
 //  return (X.transpose() * X).inverse() * y;
 //}
+
+// [[Rcpp::export]]
+IntegerMatrix fast_two_by_two_binary_table_cpp(const NumericVector ybin, const NumericVector yhat) {
+	IntegerMatrix conf(2, 2);
+	for (int i = 0; i < ybin.length(); i++){
+		double ybin_i = ybin[i];
+		double yhat_i = yhat[i];
+		if        (ybin_i == 0 && yhat_i == 0){
+			conf(0, 0)++;
+		} else if (ybin_i == 1 && yhat_i == 0){
+			conf(1, 0)++;
+		} else if (ybin_i == 0 && yhat_i == 1){
+			conf(0, 1)++;
+		} else if (ybin_i == 1 && yhat_i == 1){
+			conf(1, 1)++;
+		}
+	}
+	return conf;
+}
