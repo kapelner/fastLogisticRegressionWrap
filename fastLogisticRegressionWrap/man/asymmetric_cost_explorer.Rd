@@ -25,6 +25,8 @@ asymmetric_cost_explorer(
 \item{proportions_desired}{Which proportions of \code{outcome_of_analysis} class do you wish to understand performance for?}
 
 \item{proportion_tolerance}{If the model cannot match the proportion_desired within this amount, it does not return that model's performance. Default is \code{0.01}.}
+
+\item{K_folds}{If not \code{NULL}, this indicates that we wish to fit the \code{phat} thresholds out of sample using this number of folds. Default is \code{NULL} for in-sample fitting.}
 }
 \value{
 A table with column 1: \code{proportions_desired}, column 2: actual proportions (as close as possible), column 3: error rate, column 4: probability threshold.

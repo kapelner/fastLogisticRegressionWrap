@@ -1,3 +1,6 @@
+version 1.2.1
+* Function that can return desired asymmetric cost models fit out-of-sample
+
 version 1.2.0
 * Function that can return desired asymmetric cost models
 * Alphabetical order of coefficients for the inference summary function

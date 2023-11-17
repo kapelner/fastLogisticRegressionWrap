@@ -604,6 +604,7 @@ confusion_results = function(yhat, ybin, skip_argument_checks = FALSE){
 #' @param outcome_of_analysis   Which class do you care about performance? Either 0 or 1 for the negative class or positive class. Default is \code{0}.
 #' @param proportions_desired 	Which proportions of \code{outcome_of_analysis} class do you wish to understand performance for? 
 #' @param proportion_tolerance  If the model cannot match the proportion_desired within this amount, it does not return that model's performance. Default is \code{0.01}.
+#' @param K_folds				If not \code{NULL}, this indicates that we wish to fit the \code{phat} thresholds out of sample using this number of folds. Default is \code{NULL} for in-sample fitting.
 #' @return 						A table with column 1: \code{proportions_desired}, column 2: actual proportions (as close as possible), column 3: error rate, column 4: probability threshold.
 #' 
 #' @author Adam Kapelner
@@ -619,45 +620,59 @@ asymmetric_cost_explorer = function(
 	checkmate::assert_vector(phat)
 	checkmate::assert_numeric(phat)
 	ybin = assert_binary_vector_then_cast_to_numeric(ybin)
+	checkmate::assert(length(phat) == length(ybin))
 	checkmate::assert_numeric(steps, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
 	checkmate::assert_choice(outcome_of_analysis, c(0, 1))
 	checkmate::assert_numeric(proportions_desired, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
 	checkmate::assert_numeric(proportion_tolerance, lower = .Machine$double.eps, upper = 1 - .Machine$double.eps)
 	num_steps = length(steps)
 	temp_res = matrix(NA, nrow = num_steps, ncol = 4)
-	half_num_steps = round(num_steps / 2)
 	
-	reached_error = FALSE
-	for (i in (half_num_steps : 1)){
+	for (i in 1 : num_steps){
 		phat_threshold = steps[i]
-		temp_res[i, 1] = phat_threshold 
-#		if (!reached_error){			
-			tryCatch({
-				conf_tab = confusion_results(phat > phat_threshold, ybin, skip_argument_checks = TRUE)$confusion_proportion_and_errors
-				temp_res[i, 2] = conf_tab[3, outcome_of_analysis + 1]
-				temp_res[i, 3] = conf_tab[4, outcome_of_analysis + 1]	
-				temp_res[i, 4] = conf_tab[4, 4]				
-			}, error = function(e){
-				reached_error = TRUE
-			})
-#		}
-	}
+		temp_res[i, 1] = phat_threshold 		
+		tryCatch({
+			conf_tab = confusion_results(phat > phat_threshold, ybin, skip_argument_checks = TRUE)$confusion_proportion_and_errors
+			temp_res[i, 2] = conf_tab[3, outcome_of_analysis + 1]
+			temp_res[i, 3] = conf_tab[4, outcome_of_analysis + 1]	
+			temp_res[i, 4] = conf_tab[4, 4]				
+		}, error = function(e){
+			reached_error = TRUE
+		})
+}	
 	
-	reached_error = FALSE
-	for (i in ((half_num_steps + 1) : num_steps)){
-		phat_threshold = steps[i]
-		temp_res[i, 1] = phat_threshold 
-#		if (!reached_error){			
-			tryCatch({
-				conf_tab = confusion_results(ybin, phat > phat_threshold, skip_argument_checks = TRUE)$confusion_proportion_and_errors
-				temp_res[i, 2] = conf_tab[3, outcome_of_analysis + 1]
-				temp_res[i, 3] = conf_tab[4, outcome_of_analysis + 1]	
-				temp_res[i, 4] = conf_tab[4, 4]
-			}, error = function(e){
-				reached_error = TRUE
-			})
-#		}
-	}	
+##	half_num_steps = round(num_steps / 2)
+##     reached_error = FALSE
+##     for (i in (half_num_steps : 1)){
+##         phat_threshold = steps[i]
+##         temp_res[i, 1] = phat_threshold 
+## #		if (!reached_error){			
+##             tryCatch({
+##                 conf_tab = confusion_results(phat > phat_threshold, ybin, skip_argument_checks = TRUE)$confusion_proportion_and_errors
+##                 temp_res[i, 2] = conf_tab[3, outcome_of_analysis + 1]
+##                 temp_res[i, 3] = conf_tab[4, outcome_of_analysis + 1]	
+##                 temp_res[i, 4] = conf_tab[4, 4]				
+##             }, error = function(e){
+##                 reached_error = TRUE
+##             })
+## #		}
+##     }
+## 
+##     reached_error = FALSE
+##     for (i in ((half_num_steps + 1) : num_steps)){
+##         phat_threshold = steps[i]
+##         temp_res[i, 1] = phat_threshold 
+## #		if (!reached_error){			
+##             tryCatch({
+##                 conf_tab = confusion_results(ybin, phat > phat_threshold, skip_argument_checks = TRUE)$confusion_proportion_and_errors
+##                 temp_res[i, 2] = conf_tab[3, outcome_of_analysis + 1]
+##                 temp_res[i, 3] = conf_tab[4, outcome_of_analysis + 1]	
+##                 temp_res[i, 4] = conf_tab[4, 4]
+##             }, error = function(e){
+##                 reached_error = TRUE
+##             })
+## #		}
+##     }	
 	
 	res = data.frame(
 		proportions_desired = proportions_desired,
@@ -671,6 +686,78 @@ asymmetric_cost_explorer = function(
 		idx = which.min(abs_diffs)
 		if (abs_diffs[idx] < proportion_tolerance){
 			res[k, 2 : 5] = temp_res[idx, c(2, 3, 4, 1)]
+		}
+	}
+	res
+}
+
+#' Asymmetric Cost Explorer
+#' 
+#' Given a set of desired proportions of predicted outcomes, what is the error rate for each of those models?
+#' 
+#' @param phat                  The vector of probability estimates to be thresholded to make a binary decision
+#' @param ybin            		The true binary responses
+#' @param K_CV					We wish to fit the \code{phat} thresholds out of sample using this number of folds. Default is \code{5}.
+#' @param ...					Other parameters to be passed into the \code{asymmetric_cost_explorer} function
+#' @return 						A table with column 1: \code{proportions_desired}, column 2: actual proportions (as close as possible), column 3: error rate, column 4: probability threshold.
+#' 
+#' @author Adam Kapelner
+#' @export
+asymmetric_cost_explorer_cross_validated = function(phat, ybin,	K_CV = 5, ...){
+	checkmate::assert_vector(phat)
+	checkmate::assert_numeric(phat)
+	ybin = assert_binary_vector_then_cast_to_numeric(ybin)
+	checkmate::assert(length(phat) == length(ybin))
+	checkmate::assert_count(K_CV, positive = TRUE)
+	
+	res = NULL
+	oos_conf_tables_by_proportion = list()
+	proportions_desired = NULL
+	
+	n = length(phat)
+	temp = rnorm(n)
+	k_fold_idx = cut(temp, breaks = quantile(temp, seq(0, 1, length.out = K_CV + 1)), include.lowest = TRUE, labels = FALSE)
+	
+	for (k_cv in 1 : K_CV){
+		test_idx = which(k_fold_idx == k_cv)
+		train_idx = setdiff(1 : n, test_idx)
+#		in_sample_res_k = asymmetric_cost_explorer(phat[train_idx], ybin[train_idx])
+		in_sample_res_k = asymmetric_cost_explorer(phat[train_idx], ybin[train_idx], ...)
+		phat_threshold_k = in_sample_res_k$phat_threshold
+		if (is.null(res)){
+			proportions_desired = in_sample_res_k$proportions_desired
+			#we can't initialize the critical data structures until we know how many rows it needs
+			res = data.frame(
+				proportions_desired = proportions_desired,
+				actual_proportion = NA,
+				fomr = NA,
+				miscl_err = NA
+			)
+			for (prop_desired in proportions_desired){
+				oos_conf_tables_by_proportion[[as.character(prop_desired)]] = NA 
+			}
+		}
+		
+		for (i_thres in 1 : length(phat_threshold_k)){
+			phat_i_thres = phat_threshold_k[i_thres]
+			prop_desired_i_thres = proportions_desired[i_thres]
+			if (!is.na(phat_i_thres)){
+				if (is(oos_conf_tables_by_proportion[[as.character(prop_desired_i_thres)]], "logical")){
+					oos_conf_tables_by_proportion[[as.character(prop_desired_i_thres)]] = matrix(0, 2, 2)
+				}
+				oos_conf_tables_by_proportion[[as.character(prop_desired_i_thres)]] = oos_conf_tables_by_proportion[[as.character(prop_desired_i_thres)]] +
+					confusion_results(phat[test_idx] > phat_i_thres, ybin[test_idx], skip_argument_checks = TRUE)$confusion_sums[1 : 2, 1 : 2]
+			}			
+		}
+	}
+		
+	#now tabulate the final results
+	for (i_prop in 1 : length(proportions_desired)){
+		conf_tab = oos_conf_tables_by_proportion[[as.character(proportions_desired[i_prop])]]
+		if (!is(conf_tab, "logical")){
+			res[i_prop, "actual_proportion"] = sum(conf_tab[, 1]) / sum(conf_tab)
+			res[i_prop, "fomr"] =              sum(conf_tab[2, 1]) / sum(conf_tab[, 1])
+			res[i_prop, "miscl_err"] =         (conf_tab[1, 2] + conf_tab[2, 1])/ sum(conf_tab)
 		}
 	}
 	res
