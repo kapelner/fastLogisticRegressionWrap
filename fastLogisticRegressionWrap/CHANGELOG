@@ -1,3 +1,6 @@
+version 1.2.2
+* made assert_binary_vector_then_cast_to_numeric faster which makes regression faster
+
 version 1.2.1
 * Function that can return desired asymmetric cost models fit out-of-sample
 

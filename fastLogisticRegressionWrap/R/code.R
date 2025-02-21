@@ -1,7 +1,7 @@
 assert_binary_vector_then_cast_to_numeric = function(vec){
-  checkmate::assert_choice(class(vec), c("numeric", "integer", "logical"))
+  #checkmate::assert_choice(class(vec), c("numeric", "integer", "logical"))
   vec = as.numeric(vec)
-  if (!(checkmate::testSetEqual(unique(vec), c(0, 1)) | checkmate::testSetEqual(unique(vec), c(0)) | checkmate::testSetEqual(unique(vec), c(1)))){ #binary only
+  if (!all(unique(vec) %in% c(0, 1))){ #binary only
 	  stop("Set must consist of zeroes and/or ones.")
   }
   vec
@@ -58,9 +58,15 @@ fast_logistic_regression = function(Xmm, ybin, drop_collinear_variables = FALSE,
   assert_function(Xt_times_diag_w_times_X_fun, null.ok = TRUE, args = c("X", "w", "num_cores"), ordered = TRUE, nargs = 3)
   assert_function(sqrt_diag_matrix_inverse_fun, null.ok = TRUE, args = c("X", "num_cores"), ordered = TRUE, nargs = 2)
   assert_count(num_cores, positive = TRUE)
-  original_col_names = colnames(Xmm)
   
   p = ncol(Xmm) #the original p before variables are dropped
+  original_col_names = colnames(Xmm)
+  if (is.null(original_col_names)){
+	original_col_names = paste("var", 1 : p, sep = "")
+  }
+  if (length(unique(original_col_names)) < p){
+	stop("You must assign unique column names for the columns of Xmm.")
+  }
   
   assert_choice(class(do_inference_on_var), c("character", "numeric", "integer"))
   if (is(do_inference_on_var, "character")){
@@ -199,10 +205,12 @@ summary.fast_logistic_regression = function(object, alpha_order = TRUE, ...){
   if (!object$converged){
       warning("fast LR did not converge")
   }
-  if (object$do_inference_on_var == "none"){
-	  cat("please refit the model with the \"do_inference_on_var\" argument set to \"all\" or a single variable index number.\n")
-  } else {
-	  df = data.frame(
+  df = if (object$do_inference_on_var == "none"){
+	  data.frame(
+	    approx_coef = object$coefficients,
+	  )
+	  } else {
+	  data.frame(
 	    approx_coef = object$coefficients,
 	    approx_se = object$se,
 	    approx_z = object$z,

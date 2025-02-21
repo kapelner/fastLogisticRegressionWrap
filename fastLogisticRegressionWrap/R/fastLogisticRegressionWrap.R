@@ -1,7 +1,6 @@
 #' A tool to find many types of a priori experimental designs
 #'
 #' @name 		fastLogisticRegressionWrap
-#' @docType 	package
 #' @title 		A Wrapper for FastLR
 #' @author 		Adam Kapelner \email{kapelner@@qc.cuny.edu}
 #' @references 	Kapelner, A
