@@ -4,7 +4,7 @@ Title: Fast Logistic Regression Wrapper
 Date: 2025-02-18
 Version: 1.2.2
 Authors@R: c(
-	person("Adam", "Kapelner", email = "kapelner@qc.cuny.edu",           role = c("aut", "cre"), comment = c(ORCID = "0000-0001-5985-6792")),
+	person("Adam", "Kapelner", email = "kapelner@qc.cuny.edu",           role = c("aut", "cre", "cph"), comment = c(ORCID = "0000-0001-5985-6792")),
 	person("Beau", "Walker",   email = "beau@methoddatascience.com",     role = c("rev", "dtc"), comment = c(ORCID = "0000-0001-7872-4007")),
 	person("Gabriel", "Mayer", email = "gmayer@revelartechnologies.com", role = c("fnd", "dtc"))
   )
@@ -15,7 +15,8 @@ Depends: R (>= 4.0.0)
 Imports: RcppNumerical, Rcpp, checkmate, stats, MASS, methods
 LinkingTo: Rcpp, RcppEigen
 URL: https://kapelner.github.io/fastLogisticRegressionWrap/,
-    https://github.com/kapelner/fastLogisticRegressionWrap
+    https://github.com/kapelner/fastLogisticRegressionWrap,
+    https://kapelner.r-universe.dev/fastLogisticRegressionWrap
 BugReports: https://github.com/kapelner/fastLogisticRegressionWrap/issues
 RoxygenNote: 7.3.2
 Config/Needs/website: pkgdown

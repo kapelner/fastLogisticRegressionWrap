@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "fastLogisticRegressionWrap: Fast Logistic Regression Wrapper"
+version: 1.2.2
+date-released: "2025-02-18"
+authors:
+  - family-names: Kapelner
+    given-names: Adam
+    email: kapelner@qc.cuny.edu
+    orcid: "https://orcid.org/0000-0001-5985-6792"
+  - family-names: Walker
+    given-names: Beau
+    email: beau@methoddatascience.com
+    orcid: "https://orcid.org/0000-0001-7872-4007"
+  - family-names: Mayer
+    given-names: Gabriel
+    email: gmayer@revelartechnologies.com
+repository-code: "https://github.com/kapelner/fastLogisticRegressionWrap"
+url: "https://kapelner.r-universe.dev/fastLogisticRegressionWrap"
+license: GPL-3.0-only
+keywords:
+  - logistic regression
+  - statistical inference
+  - stepwise selection
+  - GPU computing
+  - Rcpp
+abstract: >
+  fastLogisticRegressionWrap provides fast logistic regression with coefficient
+  inference, forward stepwise model selection, and hooks for custom
+  matrix operations including GPU-backed computation.

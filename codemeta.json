@@ -1,0 +1,56 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "fastLogisticRegressionWrap",
+  "description": "Fast logistic regression with coefficient inference, forward stepwise model selection, and hooks for custom matrix operations including GPU-backed computation.",
+  "version": "1.2.2",
+  "dateReleased": "2025-02-18",
+  "license": "https://spdx.org/licenses/GPL-3.0-only",
+  "codeRepository": "https://github.com/kapelner/fastLogisticRegressionWrap",
+  "issueTracker": "https://github.com/kapelner/fastLogisticRegressionWrap/issues",
+  "url": "https://kapelner.github.io/fastLogisticRegressionWrap/",
+  "programmingLanguage": [
+    {"@type": "ComputerLanguage", "name": "R"},
+    {"@type": "ComputerLanguage", "name": "C++"}
+  ],
+  "keywords": [
+    "logistic regression",
+    "statistical inference",
+    "stepwise selection",
+    "GPU computing",
+    "Rcpp"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Adam",
+      "familyName": "Kapelner",
+      "email": "kapelner@qc.cuny.edu",
+      "@id": "https://orcid.org/0000-0001-5985-6792"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Beau",
+      "familyName": "Walker",
+      "email": "beau@methoddatascience.com",
+      "@id": "https://orcid.org/0000-0001-7872-4007"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Gabriel",
+      "familyName": "Mayer",
+      "email": "gmayer@revelartechnologies.com"
+    }
+  ],
+  "maintainer": {
+    "@type": "Person",
+    "givenName": "Adam",
+    "familyName": "Kapelner",
+    "email": "kapelner@qc.cuny.edu",
+    "@id": "https://orcid.org/0000-0001-5985-6792"
+  },
+  "operatingSystem": ["Linux", "macOS", "Windows"],
+  "relatedLink": [
+    "https://kapelner.r-universe.dev/fastLogisticRegressionWrap"
+  ]
+}
