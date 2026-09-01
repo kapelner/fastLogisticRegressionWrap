@@ -1,7 +1,7 @@
+graft/
 fastLogisticRegressionWrap/src/*.o
-fastLogisticRegressionWrap/src/RcppExports.cpp
 fastLogisticRegressionWrap/src/*.dll
-fastLogisticRegressionWrap/R/RcppExports.R
+fastLogisticRegressionWrap/src/*.so
 
 
 # History files

@@ -205,24 +205,22 @@ summary.fast_logistic_regression = function(object, alpha_order = TRUE, ...){
   if (!object$converged){
       warning("fast LR did not converge")
   }
-  df = if (object$do_inference_on_var == "none"){
-	  data.frame(
-	    approx_coef = object$coefficients,
-	  )
-	  } else {
-	  data.frame(
-	    approx_coef = object$coefficients,
-	    approx_se = object$se,
-	    approx_z = object$z,
-	    approx_pval = object$approx_pval,
-	    signif = ifelse(is.na(object$approx_pval), "", ifelse(object$approx_pval < 0.001, "***", ifelse(object$approx_pval < 0.01, "**", ifelse(object$approx_pval < 0.05, "*", ""))))
-	  )
-	  rownames(df) = object$original_regressor_names
-	  if (alpha_order){
-		  df = df[order(rownames(df)), ]
-	  }
-	  df
+  df = if (object$do_inference_on_var == "none") {
+	data.frame(approx_coef = object$coefficients)
+  } else {
+	data.frame(
+	  approx_coef = object$coefficients,
+	  approx_se = object$se,
+	  approx_z = object$z,
+	  approx_pval = object$approx_pval,
+	  signif = ifelse(is.na(object$approx_pval), "", ifelse(object$approx_pval < 0.001, "***", ifelse(object$approx_pval < 0.01, "**", ifelse(object$approx_pval < 0.05, "*", ""))))
+	)
   }
+  rownames(df) = object$original_regressor_names
+  if (alpha_order) {
+	df = df[order(rownames(df)), , drop = FALSE]
+  }
+  df
 }
 
 #' FastLR Wrapper Summary
@@ -612,7 +610,6 @@ confusion_results = function(yhat, ybin, skip_argument_checks = FALSE){
 #' @param outcome_of_analysis   Which class do you care about performance? Either 0 or 1 for the negative class or positive class. Default is \code{0}.
 #' @param proportions_desired 	Which proportions of \code{outcome_of_analysis} class do you wish to understand performance for? 
 #' @param proportion_tolerance  If the model cannot match the proportion_desired within this amount, it does not return that model's performance. Default is \code{0.01}.
-#' @param K_folds				If not \code{NULL}, this indicates that we wish to fit the \code{phat} thresholds out of sample using this number of folds. Default is \code{NULL} for in-sample fitting.
 #' @return 						A table with column 1: \code{proportions_desired}, column 2: actual proportions (as close as possible), column 3: error rate, column 4: probability threshold.
 #' 
 #' @author Adam Kapelner
@@ -903,7 +900,7 @@ eigen_Xt_times_diag_w_times_X = function(X, w, num_cores = 1){
 #' @param j 			The diagonal entry of \code{M}'s inverse
 #' @param num_cores 	The number of cores to use. Default is 1.
 #' 
-#' @return 				The value of m^{-1}_{j,j}
+#' @return 				The \eqn{(j, j)} entry of \eqn{M^{-1}}.
 #' 
 #' @author Adam Kapelner
 #' @export

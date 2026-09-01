@@ -14,7 +14,7 @@ eigen_compute_single_entry_of_diagonal_matrix(M, j, num_cores = 1)
 \item{num_cores}{The number of cores to use. Default is 1.}
 }
 \value{
-The value of m^{-1}_{j,j}
+The \eqn{(j, j)} entry of \eqn{M^{-1}}.
 }
 \description{
 Via the eigen package's conjugate gradient descent algorithm.

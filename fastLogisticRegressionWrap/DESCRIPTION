@@ -14,6 +14,8 @@ Encoding: UTF-8
 Depends: R (>= 4.0.0)
 Imports: RcppNumerical, Rcpp, checkmate, stats, MASS, methods
 LinkingTo: Rcpp, RcppEigen
-URL: https://github.com/kapelner/fastLogisticRegressionWrap
+URL: https://kapelner.github.io/fastLogisticRegressionWrap/,
+    https://github.com/kapelner/fastLogisticRegressionWrap
 BugReports: https://github.com/kapelner/fastLogisticRegressionWrap/issues
 RoxygenNote: 7.3.2
+Config/Needs/website: pkgdown

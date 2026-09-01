@@ -1,5 +1,17 @@
 # fastLogisticRegressionWrap
 
+[![R-CMD-check](https://github.com/kapelner/fastLogisticRegressionWrap/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/fastLogisticRegressionWrap/actions/workflows/R-CMD-check.yaml)
+[![R-universe version](https://kapelner.r-universe.dev/fastLogisticRegressionWrap/badges/version)](https://kapelner.r-universe.dev/fastLogisticRegressionWrap)
+
+Install the current development version from R-universe:
+
+```r
+install.packages(
+  "fastLogisticRegressionWrap",
+  repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org")
+)
+```
+
 The public repository for the R package [fastLogisticRegressionWrap](https://cran.rstudio.com/web/packages/fastLogisticRegressionWrap/) which extends [RcppNumerical::fastLR](https://rdrr.io/cran/RcppNumerical/man/fastLR.html). We now allow for using GPU
 speedups but not natively in the package (read further on). Here are some compelling benchmarks.
 

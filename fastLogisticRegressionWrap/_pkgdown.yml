@@ -1,0 +1,9 @@
+url: https://kapelner.github.io/fastLogisticRegressionWrap/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, news]
+    right: [search, github]
