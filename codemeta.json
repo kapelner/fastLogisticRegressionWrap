@@ -14,11 +14,18 @@
     {"@type": "ComputerLanguage", "name": "C++"}
   ],
   "keywords": [
-    "logistic regression",
-    "statistical inference",
-    "stepwise selection",
-    "GPU computing",
-    "Rcpp"
+    "logistic-regression",
+    "generalized-linear-models",
+    "binary-classification",
+    "statistical-inference",
+    "maximum-likelihood",
+    "model-selection",
+    "stepwise-selection",
+    "aic",
+    "prediction",
+    "high-performance-computing",
+    "gpu-computing",
+    "rcpp"
   ],
   "author": [
     {

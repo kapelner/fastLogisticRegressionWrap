@@ -10,6 +10,10 @@ Authors@R: c(
   )
 License: GPL-3
 Description: Provides very fast logistic regression with coefficient inferences plus other useful methods such as a forward stepwise model generator (see the benchmarks by visiting the github page at the URL below). The inputs are flexible enough to accomodate GPU computations. The coefficient estimation employs the fastLR() method in the 'RcppNumerical' package by Yixuan Qiu et al. This package allows their work to be more useful to a wider community that consumes inference.
+X-schema.org-keywords: logistic-regression, generalized-linear-models,
+    binary-classification, statistical-inference, maximum-likelihood,
+    model-selection, stepwise-selection, aic, prediction,
+    high-performance-computing, gpu-computing, rcpp
 Encoding: UTF-8
 Depends: R (>= 4.0.0)
 Imports: RcppNumerical, Rcpp, checkmate, stats, MASS, methods

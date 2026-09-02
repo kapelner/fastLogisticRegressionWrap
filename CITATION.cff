@@ -20,11 +20,18 @@ repository-code: "https://github.com/kapelner/fastLogisticRegressionWrap"
 url: "https://kapelner.r-universe.dev/fastLogisticRegressionWrap"
 license: GPL-3.0-only
 keywords:
-  - logistic regression
-  - statistical inference
-  - stepwise selection
-  - GPU computing
-  - Rcpp
+  - logistic-regression
+  - generalized-linear-models
+  - binary-classification
+  - statistical-inference
+  - maximum-likelihood
+  - model-selection
+  - stepwise-selection
+  - aic
+  - prediction
+  - high-performance-computing
+  - gpu-computing
+  - rcpp
 abstract: >
   fastLogisticRegressionWrap provides fast logistic regression with coefficient
   inference, forward stepwise model selection, and hooks for custom
