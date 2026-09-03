@@ -3,6 +3,12 @@ url: https://kapelner.github.io/fastLogisticRegressionWrap/
 template:
   bootstrap: 5
 
+home:
+  title: fastLogisticRegressionWrap
+  description: >
+    Very fast logistic regression with coefficient inference, forward stepwise
+    model selection, and GPU-friendly inputs, built on RcppNumerical::fastLR().
+
 navbar:
   structure:
     left: [intro, reference, news]

@@ -1,0 +1,14 @@
+{
+  "name": "fastLogisticRegressionWrap: Fast Logistic Regression Wrapper",
+  "short_name": "fastLR",
+  "icons": [
+    {
+      "src": "favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#01295f",
+  "background_color": "#01295f",
+  "display": "standalone"
+}
