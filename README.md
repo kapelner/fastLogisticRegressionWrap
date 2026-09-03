@@ -1,4 +1,4 @@
-# fastLogisticRegressionWrap
+# fastLogisticRegressionWrap <img src="fastLogisticRegressionWrap/man/figures/logo.png" align="right" height="139" alt="fastLogisticRegressionWrap hex logo" />
 
 [![R-CMD-check](https://github.com/kapelner/fastLogisticRegressionWrap/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/fastLogisticRegressionWrap/actions/workflows/R-CMD-check.yaml)
 [![R-universe version](https://kapelner.r-universe.dev/fastLogisticRegressionWrap/badges/version)](https://kapelner.r-universe.dev/fastLogisticRegressionWrap)
